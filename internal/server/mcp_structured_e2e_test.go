@@ -76,7 +76,7 @@ func TestMCPStructuredOutput(t *testing.T) {
 	cs := mcpSessionIn(t, e, e.alice, sh)
 	conn := e.conn(t)
 	cal, notes, goals := pb.NewCalendarServiceClient(conn), pb.NewNoteServiceClient(conn), pb.NewGoalServiceClient(conn)
-	holds, objs := pb.NewHoldingServiceClient(conn), pb.NewObjectiveServiceClient(conn)
+	objs := pb.NewObjectiveServiceClient(conn)
 	ctx := as(e.alice)
 	tomorrow := time.Now().In(sh).AddDate(0, 0, 1).Format("2006-01-02")
 
@@ -259,37 +259,6 @@ func TestMCPStructuredOutput(t *testing.T) {
 		t.Fatalf("time_summary by day: %v", sc)
 	}
 
-	// Holdings: money carries its currency.
-	_, sc, _ = callS(t, cs, "record_trade", map[string]any{"symbol": "voo", "side": "buy", "shares": 10, "price": 520})
-	hid := item(t, sc, "holding")
-	pos := obj(t, sc["position"])
-	if sc["symbol"] != "VOO" || pos["shares"] != 10.0 || pos["hasPrice"] != false || pos["marketValue"] != nil {
-		t.Fatalf("record_trade: %v", sc)
-	}
-	money(t, pos["avgCost"], 520, "USD")
-	_, sc, _ = callS(t, cs, "update_holding", map[string]any{"id": hid, "last_price": 550, "dca_amount": 500, "dca_day": 5})
-	money(t, sc["lastPrice"], 550, "USD")
-	money(t, obj(t, sc["position"])["marketValue"], 5500, "USD")
-	money(t, obj(t, sc["position"])["unrealizedPnl"], 300, "USD")
-	plan := obj(t, sc["plan"])
-	money(t, plan["amount"], 500, "USD")
-	if plan["day"] != 5.0 || plan["active"] != true {
-		t.Fatalf("update_holding plan: %v", plan)
-	}
-	inZone(t, plan["nextTime"])
-	text, sc, _ = callS(t, cs, "get_holding", map[string]any{"id": hid})
-	item(t, sc, "holding")
-	h, err := holds.GetHolding(ctx, &pb.GetHoldingRequest{Id: hid})
-	sameText(t, "get_holding", text, h, err)
-	_, sc, _ = callS(t, cs, "list_holdings", map[string]any{})
-	item(t, obj(t, arr(t, sc["items"])[0]), "holding")
-	_, sc, _ = callS(t, cs, "list_trades", map[string]any{"holding_id": hid})
-	tr := obj(t, arr(t, sc["items"])[0])
-	if tr["kind"] != "trade" || tr["link"] != "noted://holding/"+hid || tr["side"] != "buy" {
-		t.Fatalf("list_trades: %v", tr)
-	}
-	money(t, tr["price"], 520, "USD")
-
 	// Reminders and the weekly review.
 	_, sc, _ = callS(t, cs, "list_reminders", map[string]any{})
 	arr(t, sc["items"])
@@ -310,7 +279,6 @@ func TestMCPStructuredOutput(t *testing.T) {
 		{"delete_time_entry", lid, "time", "deleted time entry " + lid},
 		{"delete_goal", gid, "goal", "deleted goal " + gid},
 		{"delete_objective", oid, "objective", "deleted objective " + oid},
-		{"delete_holding", hid, "holding", "deleted holding " + hid},
 		{"delete_project", pid, "project", "deleted project " + pid},
 	} {
 		text, sc, isErr := callS(t, cs, d.tool, map[string]any{"id": d.id})

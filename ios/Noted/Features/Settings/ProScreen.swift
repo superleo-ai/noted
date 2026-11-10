@@ -10,7 +10,7 @@ struct ProScreen: View {
     @State private var loaded = false
     @State private var manage = false
 
-    private static let features = ["多设备同步", "接入 AI 助手（MCP）", "无限项目与目标", "投资与定投追踪", "导出全部数据"]
+    private static let features = ["多设备同步", "接入 AI 助手（MCP）", "无限项目与目标", "导出全部数据"]
 
     var body: some View {
         let pro = session.pro

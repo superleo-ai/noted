@@ -65,7 +65,6 @@ check "the app's export zip holds the seeded data" "python3 $HERE/verify.py expo
 check "to-dos made and edited in the app are on the server" "python3 $HERE/verify.py tasks"
 check "the sitting logged in the app is on the server" "python3 $HERE/verify.py sittings"
 check "the weight reading is on the server" "python3 $HERE/verify.py objective"
-check "the buy is on the server" "python3 $HERE/verify.py holding"
 check "projects: linked, renamed, deleted keeping its to-do" "python3 $HERE/verify.py projects"
 check "notes: edited, pinned, deleted, referenced" "python3 $HERE/verify.py notes"
 check "the event title edit was saved, the deleted one is gone" "python3 $HERE/verify.py events"

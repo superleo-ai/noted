@@ -48,11 +48,6 @@ enum Sample {
                 .init(id: "g5", title: "控糖", done: 4, target: 7, unit: "天", behind: true),
             ]),
         ]
-        let next = Calendar.current.date(byAdding: .day, value: 6, to: .now)
-        s.holdings = [
-            .init(id: "h1", symbol: "QQQM", planDay: 15, amount: 500, doneThisMonth: false, next: next, shares: 15, gainPercent: 0.042, streak: 3),
-            .init(id: "h2", symbol: "VOO", planDay: 15, amount: 500, doneThisMonth: true, next: next, shares: 14, gainPercent: -0.011, streak: 5),
-        ]
         return s
     }
 }

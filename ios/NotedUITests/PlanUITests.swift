@@ -1,6 +1,6 @@
 import XCTest
 
-/// 计划: project pages (contents, 关联已有, 移出项目, 编辑, 删除), a goal, an objective, a holding, 投资.
+/// 计划: project pages (contents, 关联已有, 移出项目, 编辑, 删除), a goal, an objective.
 final class PlanUITests: NotedUITestCase {
     private func row(_ title: String) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
@@ -130,33 +130,5 @@ final class PlanUITests: NotedUITestCase {
         sawToast("已记录 78.2 kg")
         exists(text("78.2"))
         exists(any("已减 1.8 kg"))
-    }
-
-    func testHoldingBuyUpdatesPosition() throws {
-        try launch(tab: "plan")
-        let voo = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'VOO'")).firstMatch
-        reveal(voo).tap()
-        exists(app.navigationBars["VOO"])
-        exists(any("10"))
-        app.buttons["holding-buy"].tap()
-        exists(app.navigationBars["记一笔 · VOO"])
-        let shares = app.textFields.matching(NSPredicate(format: "placeholderValue == '0'")).firstMatch
-        exists(shares)
-        shares.tap()
-        shares.typeText("2")
-        app.buttons["trade-save"].tap()
-        sawToast("已记录买入")
-        exists(any("523.33"))
-        exists(any("12"))
-    }
-
-    func testInvestSummary() throws {
-        try launch(tab: "plan")
-        let all = app.buttons["plan-invest-all"]
-        reveal(all).tap()
-        exists(app.navigationBars["投资"])
-        for s in ["QQQM", "VOO", "OKLO"] { exists(any(s)) }
-        exists(any("持仓"))
-        reveal(any("定投计划"))
     }
 }

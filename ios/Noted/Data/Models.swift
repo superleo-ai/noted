@@ -276,13 +276,6 @@ extension Noted_V1_Project {
     }
 }
 
-// MARK: - holdings
-
-extension Noted_V1_Holding {
-    var price: Double? { hasLastPrice ? lastPrice : nil }
-    var hasPlan: Bool { dcaDay > 0 }
-}
-
 /// Something that can belong to a project.
 enum ItemRef: Hashable, Sendable {
     case task(String), event(String), note(String), goal(String), objective(String)

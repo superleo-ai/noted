@@ -12,8 +12,9 @@ const pageSize = 500
 // Collect reads everything a user has, archived and finished items included,
 // in the spaces the user lets AI read (AIService.SetAIAccess): the brain is AI
 // memory, so a space closed to the assistant is closed to it too, and what
-// was sent from it before is withdrawn on the next run. Holdings have no space
-// and count as life.
+// was sent from it before is withdrawn on the next run. Holdings are not sent:
+// investments moved to the finance service, and those sent before are
+// withdrawn.
 func Collect(ctx context.Context, st *store.Store, userID, userName string, loc *time.Location, lang string, now time.Time) (Snapshot, error) {
 	s := Snapshot{User: userName, Location: loc, Lang: lang, Now: now}
 	access, err := st.GetAIAccess(ctx, userID)
@@ -69,24 +70,6 @@ func Collect(ctx context.Context, st *store.Store, userID, userName string, loc 
 	}
 	if s.Objectives, err = st.ListObjectives(ctx, userID, true, now, ""); err != nil {
 		return s, err
-	}
-	hs, err := st.ListHoldings(ctx, userID, true, now)
-	if err != nil {
-		return s, err
-	}
-	for _, v := range hs {
-		h := Holding{Holding: v.Holding, Position: v.Position}
-		trades, err := st.ListTrades(ctx, userID, v.Holding.ID)
-		if err != nil {
-			return s, err
-		}
-		for _, t := range trades {
-			if h.LastTrade == nil || t.Time.After(*h.LastTrade) {
-				tt := t.Time
-				h.LastTrade = &tt
-			}
-		}
-		s.Holdings = append(s.Holdings, h)
 	}
 	as, _, err := st.ListAlarms(ctx, userID, store.AlarmFilter{Silent: true})
 	if err != nil {

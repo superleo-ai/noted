@@ -43,15 +43,6 @@ final class ScreensUITests: NotedUITestCase {
         exists(app.navigationBars["减肥"])
         shot("50-objective")
         back()
-        let h = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'QQQM'")).firstMatch
-        reveal(h).tap()
-        exists(app.navigationBars["QQQM"])
-        shot("57-holding")
-        back()
-        reveal(app.buttons["plan-invest-all"]).tap()
-        shot("86-invest")
-        back()
-
         tab("notes")
         exists(app.navigationBars["笔记"])
         shot("08-notes")

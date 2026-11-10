@@ -157,12 +157,6 @@ func TestOverviewItemsAreTasksOrEvents(t *testing.T) {
 func TestConversions(t *testing.T) {
 	tl := &tools{loc: shanghai}
 
-	h := tl.holding(&pb.Holding{Id: "h1", Symbol: "VOO", Currency: "USD", Position: &pb.Position{Shares: 2, AvgCost: 500, CostBasis: 1000}})
-	if h.LastPrice != nil || h.Plan != nil || h.Position.MarketValue != nil || h.Position.UnrealizedPercent != nil ||
-		h.Position.AvgCost != (money{Amount: 500, Currency: "USD"}) || h.Link != "noted://holding/h1" {
-		t.Fatalf("holding without a price or plan: %+v", h)
-	}
-
 	if w := tl.taskWork(&pb.TaskWork{Id: "w1", TaskId: "t1", Progress: -1}); w.Progress != nil || w.Link != "noted://task/t1" {
 		t.Fatalf("a sitting without progress: %+v", w)
 	}

@@ -12,7 +12,6 @@ import SwiftProtobuf
 //              counter_target, objective_id, project_id, milestones
 //   objective: title, notes, space, start_time, due_time, metric_name, metric_unit, metric_start,
 //              metric_target, archived, project_id, milestones (replaces the list; ids keep done state)
-//   holding:   name, currency, notes, last_price, dca_amount, dca_day, dca_time, time_zone, archived
 // A field in the mask whose value is unset clears it (e.g. "due_time" with no due time).
 
 extension AppData {
@@ -444,65 +443,6 @@ extension AppData {
         guard await perform({ _ = try await $0.objectives.deleteMeasurement(r) }) != nil else { return false }
         measurements[objectiveID]?.removeAll { $0.id == measurementID }
         await refreshGoals()
-        didWrite()
-        return true
-    }
-
-    // MARK: holdings
-
-    @discardableResult
-    func createHolding(_ holding: Noted_V1_Holding) async -> Noted_V1_Holding? {
-        var h = holding
-        if h.timeZone.isEmpty { h.timeZone = TimeZone.current.identifier }
-        var r = Noted_V1_CreateHoldingRequest(); r.holding = h
-        guard let made = await perform({ try await $0.holdings.createHolding(r) }) else { return nil }
-        upsert(made)
-        didWrite()
-        return made
-    }
-
-    @discardableResult
-    func updateHolding(_ holding: Noted_V1_Holding, fields: [String]) async -> Noted_V1_Holding? {
-        var r = Noted_V1_UpdateHoldingRequest(); r.holding = holding; r.updateMask = mask(fields)
-        guard let h = await perform({ try await $0.holdings.updateHolding(r) }) else { return nil }
-        upsert(h)
-        if fields.contains(where: { $0.hasPrefix("dca") }) { await reloadEvents() }
-        didWrite()
-        return h
-    }
-
-    /// Deletes a holding with its trades and its monthly plan event.
-    @discardableResult
-    func deleteHolding(_ holdingID: String) async -> Bool {
-        var r = Noted_V1_DeleteHoldingRequest(); r.id = holdingID
-        guard await perform({ _ = try await $0.holdings.deleteHolding(r) }) != nil else { return false }
-        holdings.removeAll { $0.id == holdingID }
-        trades[holdingID] = nil
-        await reloadEvents()
-        didWrite()
-        return true
-    }
-
-    /// Records a buy or sell. Selling more than is held is refused by the server (shown as a toast).
-    @discardableResult
-    func recordTrade(_ holdingID: String, side: String, shares: Double, price: Double, fee: Double = 0, note: String = "", at time: Date = .now) async -> Noted_V1_Holding? {
-        var r = Noted_V1_RecordTradeRequest()
-        r.holdingID = holdingID
-        r.trade.side = side; r.trade.shares = shares; r.trade.price = price; r.trade.fee = fee; r.trade.note = note
-        r.trade.time = Google_Protobuf_Timestamp(date: time)
-        guard let h = await perform({ try await $0.holdings.recordTrade(r) }) else { return nil }
-        upsert(h)
-        await loadTrades(holdingID)
-        didWrite()
-        return h
-    }
-
-    @discardableResult
-    func deleteTrade(_ tradeID: String, holdingID: String) async -> Bool {
-        var r = Noted_V1_DeleteTradeRequest(); r.id = tradeID
-        guard await perform({ _ = try await $0.holdings.deleteTrade(r) }) != nil else { return false }
-        trades[holdingID]?.removeAll { $0.id == tradeID }
-        await refreshHoldings()
         didWrite()
         return true
     }

@@ -103,7 +103,7 @@ type money struct {
 
 type deletedOut struct {
 	Deleted string   `json:"deleted" jsonschema:"the id of what was deleted"`
-	Kind    string   `json:"kind" jsonschema:"task, event, note, project, goal, objective, holding, time, trade, reading, taskWork or alarm"`
+	Kind    string   `json:"kind" jsonschema:"task, event, note, project, goal, objective, time, reading, taskWork or alarm"`
 	Task    *taskOut `json:"task,omitempty" jsonschema:"delete_task_work only: the task with its totals recomputed"`
 }
 
@@ -338,62 +338,6 @@ type readingOut struct {
 	Time        string  `json:"time"`
 	Value       float64 `json:"value"`
 	Note        string  `json:"note,omitempty"`
-}
-
-type holdingPlanOut struct {
-	Amount            money  `json:"amount" jsonschema:"per month"`
-	Day               int32  `json:"day" jsonschema:"day of the month, 1-28"`
-	Time              string `json:"time" jsonschema:"HH:MM in timeZone"`
-	TimeZone          string `json:"timeZone,omitempty"`
-	EventID           string `json:"eventId,omitempty" jsonschema:"the monthly reminder event"`
-	Active            bool   `json:"active"`
-	NextTime          string `json:"nextTime,omitempty"`
-	DoneThisMonth     bool   `json:"doneThisMonth"`
-	InvestedThisMonth money  `json:"investedThisMonth"`
-	StreakMonths      int32  `json:"streakMonths"`
-}
-
-type positionOut struct {
-	Shares            float64  `json:"shares"`
-	AvgCost           money    `json:"avgCost" jsonschema:"per share"`
-	CostBasis         money    `json:"costBasis"`
-	RealizedPnl       money    `json:"realizedPnl"`
-	TotalBought       money    `json:"totalBought"`
-	Trades            int32    `json:"trades"`
-	HasPrice          bool     `json:"hasPrice"`
-	MarketValue       *money   `json:"marketValue,omitempty" jsonschema:"set when hasPrice"`
-	UnrealizedPnl     *money   `json:"unrealizedPnl,omitempty" jsonschema:"set when hasPrice"`
-	UnrealizedPercent *float64 `json:"unrealizedPercent,omitempty" jsonschema:"of costBasis; set when hasPrice"`
-}
-
-type holdingOut struct {
-	Kind          string          `json:"kind" jsonschema:"always holding"`
-	ID            string          `json:"id"`
-	Link          string          `json:"link"`
-	Symbol        string          `json:"symbol"`
-	Name          string          `json:"name,omitempty"`
-	Currency      string          `json:"currency"`
-	Notes         string          `json:"notes,omitempty"`
-	LastPrice     *money          `json:"lastPrice,omitempty" jsonschema:"entered by the user; noted fetches no prices"`
-	LastPriceTime string          `json:"lastPriceTime,omitempty"`
-	Plan          *holdingPlanOut `json:"plan,omitempty" jsonschema:"the monthly buying plan, when there is one"`
-	Archived      bool            `json:"archived"`
-	CreateTime    string          `json:"createTime,omitempty"`
-	UpdateTime    string          `json:"updateTime,omitempty"`
-	Position      *positionOut    `json:"position,omitempty"`
-}
-
-type tradeOut struct {
-	Kind      string  `json:"kind" jsonschema:"always trade"`
-	ID        string  `json:"id"`
-	Link      string  `json:"link" jsonschema:"its holding"`
-	HoldingID string  `json:"holdingId"`
-	Time      string  `json:"time"`
-	Side      string  `json:"side" jsonschema:"buy or sell"`
-	Shares    float64 `json:"shares"`
-	Price     money   `json:"price" jsonschema:"per share"`
-	Fee       money   `json:"fee"`
-	Note      string  `json:"note,omitempty"`
 }
 
 type timeOut struct {
@@ -797,41 +741,6 @@ func (t *tools) milestone(m *pb.Milestone) milestoneOut {
 func (t *tools) reading(m *pb.Measurement) *readingOut {
 	return &readingOut{Kind: "reading", ID: m.Id, Link: link("objective", m.ObjectiveId), ObjectiveID: m.ObjectiveId,
 		Time: t.ts(m.Time), Value: m.Value, Note: m.Note}
-}
-
-func (t *tools) holding(h *pb.Holding) *holdingOut {
-	if h == nil {
-		return nil
-	}
-	cur := func(v float64) money { return money{Amount: v, Currency: h.Currency} }
-	out := &holdingOut{Kind: "holding", ID: h.Id, Link: link("holding", h.Id), Symbol: h.Symbol, Name: h.Name,
-		Currency: h.Currency, Notes: h.Notes, LastPriceTime: t.ts(h.LastPriceTime), Archived: h.Archived,
-		CreateTime: t.ts(h.CreateTime), UpdateTime: t.ts(h.UpdateTime)}
-	if h.LastPrice != nil {
-		out.LastPrice = ptr(cur(*h.LastPrice))
-	}
-	if h.DcaDay > 0 {
-		out.Plan = &holdingPlanOut{Amount: cur(h.DcaAmount), Day: h.DcaDay, Time: h.DcaTime, TimeZone: h.TimeZone,
-			EventID: h.DcaEventId, InvestedThisMonth: cur(0)}
-	}
-	if p := h.Position; p != nil {
-		out.Position = &positionOut{Shares: p.Shares, AvgCost: cur(p.AvgCost), CostBasis: cur(p.CostBasis),
-			RealizedPnl: cur(p.RealizedPnl), TotalBought: cur(p.TotalBought), Trades: p.Trades, HasPrice: p.HasPrice}
-		if p.HasPrice {
-			out.Position.MarketValue, out.Position.UnrealizedPnl = ptr(cur(p.MarketValue)), ptr(cur(p.UnrealizedPnl))
-			out.Position.UnrealizedPercent = ptr(p.UnrealizedPercent)
-		}
-		if d := p.Dca; d != nil && out.Plan != nil {
-			out.Plan.Active, out.Plan.NextTime, out.Plan.DoneThisMonth = d.Active, t.ts(d.NextTime), d.DoneThisMonth
-			out.Plan.InvestedThisMonth, out.Plan.StreakMonths = cur(d.InvestedThisMonth), d.StreakMonths
-		}
-	}
-	return out
-}
-
-func (t *tools) trade(r *pb.Trade, currency string) *tradeOut {
-	return &tradeOut{Kind: "trade", ID: r.Id, Link: link("holding", r.HoldingId), HoldingID: r.HoldingId, Time: t.ts(r.Time),
-		Side: r.Side, Shares: r.Shares, Price: money{Amount: r.Price, Currency: currency}, Fee: money{Amount: r.Fee, Currency: currency}, Note: r.Note}
 }
 
 func (t *tools) timeEntry(e *pb.TimeEntry) *timeOut {

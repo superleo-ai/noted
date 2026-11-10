@@ -17,8 +17,6 @@ func TestMCPOffersTheWholeSurface(t *testing.T) {
 		"list_objectives", "get_objective", "create_objective", "update_objective", "delete_objective",
 		"record_reading", "list_readings", "delete_reading", "set_objective_milestone_done",
 		"get_goal", "update_goal", "delete_goal", "list_check_ins", "undo_check_in", "set_milestone_done",
-		"list_holdings", "get_holding", "create_holding", "update_holding", "delete_holding",
-		"record_trade", "list_trades", "delete_trade",
 		"delete_project", "propose_schedule",
 		"log_time", "start_timer", "stop_timer", "get_running_timer", "list_time_entries", "update_time_entry", "delete_time_entry", "time_summary",
 		"create_alarm", "list_alarms", "get_alarm", "update_alarm", "delete_alarm", "get_holidays",
@@ -169,63 +167,6 @@ func TestMCPObjectivesAndReadings(t *testing.T) {
 	}
 	if out, _ := call(t, mcpSession(t, e, e.bob), "list_objectives", map[string]any{}); strings.Contains(out, "Lose weight") {
 		t.Fatalf("objective leaked: %s", out)
-	}
-}
-
-func TestMCPHoldingsAndTrades(t *testing.T) {
-	e := start(t, nil, false)
-	cs := mcpSession(t, e, e.alice)
-
-	// A buy by symbol creates the holding; a second one finds it.
-	out, isErr := call(t, cs, "record_trade", map[string]any{"symbol": "voo", "side": "buy", "shares": 10, "price": 520})
-	if isErr || !strings.Contains(out, `"VOO"`) || !has(`"shares":\s*10`, out) {
-		t.Fatalf("record_trade: %v %s", isErr, out)
-	}
-	hid := firstID(out)
-	out, isErr = call(t, cs, "record_trade", map[string]any{"symbol": "VOO", "side": "Buy", "shares": 10, "price": 500, "time": "2030-01-05T10:00:00Z"})
-	if isErr || !strings.Contains(out, hid) || !has(`"shares":\s*20`, out) || !has(`"avgCost":\s*510`, out) {
-		t.Fatalf("the second buy should join the same holding: %v %s", isErr, out)
-	}
-	if l, _ := call(t, cs, "list_holdings", map[string]any{}); strings.Count(l, `"symbol"`) != 1 {
-		t.Fatalf("one holding expected: %s", l)
-	}
-	// Selling something never bought does not invent a holding.
-	if _, isErr := call(t, cs, "record_trade", map[string]any{"symbol": "QQQM", "side": "sell", "shares": 1, "price": 200}); !isErr {
-		t.Fatal("a sell of an unknown symbol should be a tool error")
-	}
-	if l, _ := call(t, cs, "list_holdings", map[string]any{}); strings.Contains(l, "QQQM") {
-		t.Fatalf("a failed sell created a holding: %s", l)
-	}
-	if _, isErr := call(t, cs, "record_trade", map[string]any{"holding_id": hid, "side": "hold", "shares": 1, "price": 1}); !isErr {
-		t.Fatal("a bad side should be a tool error")
-	}
-
-	out, isErr = call(t, cs, "update_holding", map[string]any{"id": hid, "last_price": 550, "dca_amount": 500, "dca_day": 15})
-	if isErr || !has(`"unrealizedPnl":\s*800`, out) || !has(`"active":\s*true`, out) {
-		t.Fatalf("update_holding: %v %s", isErr, out)
-	}
-	if out, isErr := call(t, cs, "update_holding", map[string]any{"id": hid, "clear_price": true}); isErr || strings.Contains(out, "lastPrice") {
-		t.Fatalf("clear_price: %v %s", isErr, out)
-	}
-	out, _ = call(t, cs, "list_trades", map[string]any{"holding_id": hid})
-	if strings.Count(out, `"side"`) != 2 {
-		t.Fatalf("list_trades: %s", out)
-	}
-	if _, isErr := call(t, cs, "delete_trade", map[string]any{"id": firstID(out)}); isErr {
-		t.Fatal("delete_trade")
-	}
-	if out, _ := call(t, cs, "get_holding", map[string]any{"id": hid}); !has(`"shares":\s*10`, out) {
-		t.Fatalf("after deleting a trade: %s", out)
-	}
-	out, isErr = call(t, cs, "create_holding", map[string]any{"symbol": "QQQM", "name": "Invesco NASDAQ 100", "last_price": 200})
-	if isErr || !strings.Contains(out, "QQQM") {
-		t.Fatalf("create_holding: %v %s", isErr, out)
-	}
-	if _, isErr := call(t, mcpSession(t, e, e.bob), "get_holding", map[string]any{"id": hid}); !isErr {
-		t.Fatal("bob read alice's holding")
-	}
-	if _, isErr := call(t, cs, "delete_holding", map[string]any{"id": hid}); isErr {
-		t.Fatal("delete_holding")
 	}
 }
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Pieces shared by the 计划 pages (root, project, goal, objective, invest, holding).
+// Pieces shared by the 计划 pages (root, project, goal, objective).
 
 // MARK: - formatting
 
@@ -54,139 +54,6 @@ extension Noted_V1_Goal {
     var planRule: String { "\(period.every) \(Fmt.number(target)) \(isMinutes ? "分钟" : unitLabel)" }
     /// The running total's name ("课时"), or 累计.
     var planCounterName: String { counterUnit.isEmpty ? "累计" : counterUnit }
-}
-
-// MARK: - holdings
-
-extension Noted_V1_Holding {
-    var currencyCode: String { currency.isEmpty ? "USD" : currency }
-    var marketValue: Double { position.hasPrice_p ? position.marketValue : position.costBasis }
-    var pnl: Double { position.hasPrice_p ? position.unrealizedPnl : 0 }
-    /// In percent units (7.8 = 7.8%).
-    var pnlPercent: Double { position.hasPrice_p ? position.unrealizedPercent * 100 : 0 }
-
-    /// The next planned 定投 day, nil without a plan.
-    func nextDCA(now: Date = .now) -> Date? {
-        guard hasPlan else { return nil }
-        if position.dca.hasNextTime { return position.dca.nextTime.date }
-        let cal = Fmt.calendar
-        let day = Int(dcaDay)
-        var c = cal.dateComponents([.year, .month], from: now)
-        c.day = day
-        guard let thisMonth = cal.date(from: c) else { return nil }
-        if thisMonth >= now.startOfDay { return thisMonth }
-        return cal.date(byAdding: .month, value: 1, to: thisMonth)
-    }
-}
-
-/// 总市值 / 盈亏 over every holding.
-struct InvestTotals {
-    var value = 0.0
-    var cost = 0.0
-    var pnl = 0.0
-    var percent: Double { cost > 0 ? pnl / cost * 100 : 0 }
-    /// The next 定投 day and how much is planned on it.
-    var nextDCA: (date: Date, amount: Double)?
-
-    init(_ holdings: [Noted_V1_Holding], now: Date = .now) {
-        for h in holdings {
-            value += h.marketValue
-            if h.position.hasPrice_p { cost += h.position.costBasis; pnl += h.pnl }
-        }
-        let planned = holdings.compactMap { h in h.nextDCA(now: now).map { (h, $0) } }
-        if let first = planned.map(\.1).min() {
-            let amount = planned.filter { $0.1.isSameDay(as: first) }.reduce(0) { $0 + $1.0.dcaAmount }
-            nextDCA = (first, amount)
-        }
-    }
-}
-
-/// The white summary card: 总市值, P/L and 下次定投. Tappable on 计划 (opens 投资).
-struct InvestSummaryCard: View {
-    let holdings: [Noted_V1_Holding]
-    var onTap: (() -> Void)?
-
-    var body: some View {
-        if let onTap {
-            Button(action: onTap) { content }
-                .buttonStyle(CardPressStyle())
-                .accessibilityIdentifier("invest-summary")
-        } else {
-            content
-        }
-    }
-
-    private var content: some View {
-        let t = InvestTotals(holdings)
-        let tint: Color = t.pnl >= 0 ? .success : .danger
-        return VStack(alignment: .leading, spacing: 0) {
-            Text("总市值 · USD").font(.footnote).foregroundStyle(.secondaryText)
-            Text(Fmt.money(t.value))
-                .font(.system(size: 34, weight: .bold, design: .monospaced))
-                .minimumScaleFactor(0.6).lineLimit(1)
-                .padding(.top, 2)
-            Text("\(Fmt.money(t.pnl, signed: true))　\(Fmt.percent(t.percent, signed: true))")
-                .font(.system(size: 15, design: .monospaced))
-                .foregroundStyle(tint)
-                .padding(.top, 4)
-            Divider().padding(.top, 12)
-            HStack {
-                Text("下次定投").foregroundStyle(.secondaryText)
-                Spacer()
-                if let n = t.nextDCA {
-                    Text("\(Fmt.mdw(n.date)) · \(Fmt.money(n.amount, cents: n.amount != n.amount.rounded()))").monospacedDigit()
-                } else {
-                    Text("已暂停").foregroundStyle(.secondaryText)
-                }
-            }
-            .font(.subheadline)
-            .padding(.top, 11)
-        }
-        .foregroundStyle(.primary)
-        .card()
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-    }
-}
-
-/// A holding: symbol, "12 股 · 均价 205.00", price and P/L, and the colored percent pill.
-struct HoldingRow: View {
-    @Environment(Router.self) private var router
-    let holding: Noted_V1_Holding
-
-    var body: some View {
-        let h = holding
-        let up = h.pnl >= 0
-        Button { router.push(.holding(h.id)) } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(h.symbol).font(.body.weight(.semibold))
-                    Text("\(Fmt.shares(h.position.shares)) 股 · 均价 \(PlanFmt.price(h.position.avgCost))")
-                        .font(.footnote).foregroundStyle(.secondaryText).monospacedDigit()
-                }
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text(h.price.map(PlanFmt.price) ?? "—").font(.system(size: 16, design: .monospaced))
-                    if h.position.hasPrice_p {
-                        Text(Fmt.money(h.pnl, currency: h.currencyCode, signed: true))
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(up ? Color.success : Color.danger)
-                    }
-                }
-                Text(h.position.hasPrice_p ? Fmt.percent(h.pnlPercent, signed: true) : "—")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .frame(minWidth: 76, minHeight: 28)
-                    .background(RoundedRectangle(cornerRadius: 7).fill(h.position.hasPrice_p ? (up ? Color.success : Color.danger) : Color.tabInactive))
-            }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("holding-\(h.id)")
-    }
 }
 
 // MARK: - detail page pieces
@@ -342,7 +209,7 @@ struct PlanRingCard: View {
     }
 }
 
-/// A one-field number sheet (最新价, 定投金额, 记一次体重): big centered field, a caption, 取消 / done.
+/// A one-field number sheet (记一次体重): big centered field, a caption, 取消 / done.
 struct PlanNumberSheet: View {
     @Environment(\.dismiss) private var dismiss
     let title: String

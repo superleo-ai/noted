@@ -37,8 +37,6 @@ final class AppData {
     var objectives: [Noted_V1_Objective] = []
     /// The compass of each space (life, work), as last loaded; absent until loaded.
     var compasses: [Noted_V1_Space: Noted_V1_Compass] = [:]
-    /// Every unarchived holding.
-    var holdings: [Noted_V1_Holding] = []
     /// Event occurrences of the months loaded with `loadMonth`, ordered by start.
     var occurrences: [Noted_V1_Occurrence] = []
     var account: Noted_V1_Account?
@@ -50,7 +48,6 @@ final class AppData {
     var taskWork: [String: [Noted_V1_TaskWork]] = [:]      // task id → sittings, newest first
     var checkIns: [String: [Noted_V1_CheckIn]] = [:]       // goal id → newest first
     var measurements: [String: [Noted_V1_Measurement]] = [:] // objective id → oldest first
-    var trades: [String: [Noted_V1_Trade]] = [:]           // holding id → newest first
 
     /// True once the first `refreshAll` finished (show placeholders before).
     private(set) var isLoaded = false
@@ -84,7 +81,6 @@ final class AppData {
     func projectTitle(_ id: String) -> String? { project(id)?.title }
     func goal(_ id: String) -> Noted_V1_Goal? { goals.first { $0.id == id } ?? objectives.lazy.flatMap(\.goals).first { $0.id == id } }
     func objective(_ id: String) -> Noted_V1_Objective? { objectives.first { $0.id == id } }
-    func holding(_ id: String) -> Noted_V1_Holding? { holdings.first { $0.id == id } }
     func event(_ id: String) -> Noted_V1_Event? {
         occurrences.first { $0.event.id == id }?.event ?? looseEvents[id]
             ?? projectDetails.values.lazy.flatMap(\.events).first { $0.id == id }
@@ -154,7 +150,6 @@ final class AppData {
         async let p = Self.fetchProjects(api)
         async let g = Self.fetchGoals(api)
         async let o = Self.fetchObjectives(api)
-        async let h = Self.fetchHoldings(api)
         async let a = try? api.account.getAccount(Noted_V1_GetAccountRequest())
         var failure: Error?
         do { tasks = try await t } catch { failure = error }
@@ -162,7 +157,6 @@ final class AppData {
         do { projects = try await p } catch { failure = error }
         do { goals = try await g } catch { failure = error }
         do { objectives = try await o } catch { failure = error }
-        do { holdings = try await h } catch { failure = error }
         if let acc = await a { account = acc; session.pro.setServerGrant(acc.pro) }
         let months = loadedMonths.isEmpty ? [Date.now.startOfMonth] : Array(loadedMonths)
         loadedMonths = []
@@ -179,7 +173,6 @@ final class AppData {
         if let v = await g { goals = v }
         if let v = await o { objectives = v }
     }
-    func refreshHoldings() async { if let v = await perform(Self.fetchHoldings) { holdings = v } }
 
     /// Loads the event occurrences of the month containing `date`, padded to whole weeks
     /// (what a month grid shows). Cached; pass `force` to reload.
@@ -254,11 +247,6 @@ final class AppData {
         if let v = await perform({ try await $0.objectives.listMeasurements(r).measurements }) { measurements[objectiveID] = v }
     }
 
-    func loadTrades(_ holdingID: String) async {
-        var r = Noted_V1_ListTradesRequest(); r.holdingID = holdingID
-        if let v = await perform({ try await $0.holdings.listTrades(r).trades }) { trades[holdingID] = v.reversed() }
-    }
-
     func loadAccount() async {
         if let a = await perform({ try await $0.account.getAccount(Noted_V1_GetAccountRequest()) }) {
             account = a
@@ -272,9 +260,9 @@ final class AppData {
 
     /// Forgets everything (after signing out).
     func reset() {
-        tasks = []; notes = []; projects = []; goals = []; objectives = []; holdings = []
+        tasks = []; notes = []; projects = []; goals = []; objectives = [];
         occurrences = []; account = nil; tokens = []
-        projectDetails = [:]; taskWork = [:]; checkIns = [:]; measurements = [:]; trades = [:]
+        projectDetails = [:]; taskWork = [:]; checkIns = [:]; measurements = [:]
         looseEvents = [:]; loadedMonths = []; isLoaded = false
     }
 
@@ -337,10 +325,6 @@ final class AppData {
         try await api.objectives.listObjectives(Noted_V1_ListObjectivesRequest()).objectives
     }
 
-    nonisolated static func fetchHoldings(_ api: API) async throws -> [Noted_V1_Holding] {
-        try await api.holdings.listHoldings(Noted_V1_ListHoldingsRequest()).holdings
-    }
-
     // MARK: local cache upkeep
 
     func upsert(_ t: Noted_V1_Task) {
@@ -389,10 +373,6 @@ final class AppData {
         for (k, d) in projectDetails {
             if let i = d.objectives.firstIndex(where: { $0.id == o.id }) { projectDetails[k]?.objectives[i] = o }
         }
-    }
-
-    func upsert(_ h: Noted_V1_Holding) {
-        if let i = holdings.firstIndex(where: { $0.id == h.id }) { holdings[i] = h } else { holdings.append(h) }
     }
 
     /// Puts a changed event into every occurrence of it and the other caches.

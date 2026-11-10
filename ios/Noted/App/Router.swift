@@ -4,7 +4,7 @@
 //   Features/Today/     TodayView (tab root)          routes: .todo
 //   Features/Calendar/  CalendarScreen (tab root)     routes: .event
 //   Features/Plan/      PlanView (tab root)           routes: .project, .projectEdit, .projects, .linkExisting,
-//                                                             .goal, .goalEdit, .goals, .objective, .holding, .invest
+//                                                             .goal, .goalEdit, .goals, .objective
 //   Features/Notes/     NotesScreen (tab root)        routes: .note
 //   Features/Create/    CreateView                    routes: .create
 //   Features/Settings/  SettingsScreen                routes: .settings, .aiConnect, .pair, .theme, .export, .pro
@@ -59,8 +59,6 @@ enum Route: Hashable {
     case goalEdit(String)
     case goals                                // 目标 · 全部
     case objective(String)
-    case holding(String)
-    case invest                               // 投资 · 全部
     // Notes
     case note(String)
     // Create
@@ -182,8 +180,6 @@ struct RouteDestination: View {
         case .goalEdit(let id): GoalEditView(goalID: id)
         case .goals: GoalsListView()
         case .objective(let id): ObjectiveDetailView(objectiveID: id)
-        case .holding(let id): HoldingDetailView(holdingID: id)
-        case .invest: InvestView()
         case .note(let id): NoteScreen(id: id)
         case .create(let spec): CreateView(spec: spec)
         case .settings: SettingsScreen()

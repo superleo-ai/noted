@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// 计划 (tab root): 项目 cards, 目标 rows, and 投资 (summary + holdings), each with "全部 ›".
+/// 计划 (tab root): 项目 cards, 目标 rows, each with "全部 ›".
 struct PlanView: View {
     @Environment(AppData.self) private var data
     @Environment(Router.self) private var router
-    @Environment(Session.self) private var session
 
     var body: some View {
         let projects = data.activeProjects
@@ -34,21 +33,6 @@ struct PlanView: View {
                 } header: {
                     SectionHeader("目标", action: "全部") { router.push(.goals) }
                         .accessibilityIdentifier("plan-goals-all")
-                }
-
-                if session.mode != .work {
-                    Section {
-                        InvestSummaryCard(holdings: data.holdings) { router.push(.invest) }.planCardRow()
-                    } header: {
-                        SectionHeader("投资", action: "全部") { router.push(.invest) }
-                            .accessibilityIdentifier("plan-invest-all")
-                    }
-                    if !data.holdings.isEmpty {
-                        Section {
-                            ForEach(data.holdings, id: \.id) { HoldingRow(holding: $0) }
-                        }
-                        .listSectionSpacing(10)
-                    }
                 }
             }
             .listStyle(.insetGrouped)

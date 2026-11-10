@@ -91,12 +91,11 @@ struct WatchRoot: View {
 
     var body: some View {
         NavigationStack {
-            // One list, so the crown reaches everything: today, goals, plans, then investing.
+            // One list, so the crown reaches everything: today, goals, plans.
             List {
                 TodaySection()
                 GoalSection()
                 PlanSection()
-                InvestSection()
             }
             // Wherever the list is scrolled to, the reason an action did not go through stays in view.
             .safeAreaInset(edge: .bottom) {
@@ -208,29 +207,3 @@ struct PlanSection: View {
     }
 }
 
-struct InvestSection: View {
-    @Environment(WatchStore.self) private var store
-
-    var body: some View {
-        let s = store.snapshot
-        let c = s.colors
-        if !s.planned.isEmpty {
-            Section {
-                ForEach(s.planned) { h in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(h.symbol).font(.system(size: 15, weight: .bold, design: .monospaced))
-                            Text("每月 \(h.planDay) 号\(h.amount > 0 ? " · \(SnapFmt.number(h.amount))" : "")")
-                                .font(.system(size: 11)).foregroundStyle(Color.secondary)
-                        }
-                        Spacer()
-                        Text(h.doneThisMonth ? "已投" : "待投").font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(h.doneThisMonth ? Color.secondary : Color(rgb: c.bad))
-                    }
-                }
-            } header: {
-                Text("定投")
-            }
-        }
-    }
-}

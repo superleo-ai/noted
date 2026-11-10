@@ -67,17 +67,6 @@ final class WatchUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "手机")).firstMatch.waitForExistence(timeout: 5))
     }
 
-    func testInvestingShowsWhichPlansAreStillToDoThisMonth() {
-        let app = launch()
-        XCTAssertTrue(app.staticTexts["团队站会"].waitForExistence(timeout: 10))
-        let sym = app.staticTexts["QQQM"]
-        scroll(app, to: sym)
-        XCTAssertTrue(sym.exists, "the holding did not come up")
-        XCTAssertTrue(app.staticTexts["待投"].exists, "QQQM has not been bought this month")
-        scroll(app, to: app.staticTexts["已投"])
-        XCTAssertTrue(app.staticTexts["已投"].exists, "VOO has")
-    }
-
     func testCheckingInWithoutThePhoneExplainsWhy() {
         let app = launch()
         XCTAssertTrue(app.staticTexts["团队站会"].waitForExistence(timeout: 10))

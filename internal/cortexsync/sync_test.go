@@ -180,10 +180,10 @@ func TestSyncIntoALocalBrain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// First run: everything goes.
+	// First run: everything goes, except holdings (they live in finance now).
 	rep := e.run(t, Options{})
 	week := "time:" + isoWeek(entry.Start)
-	want := sorted([]string{"project:" + kyoto.ID, "project:" + work.ID, "task:" + task.ID, "note:" + note.ID, "holding:" + h.ID, week})
+	want := sorted([]string{"project:" + kyoto.ID, "project:" + work.ID, "task:" + task.ID, "note:" + note.ID, week})
 	if got := sorted(rep.Upserts); !slices.Equal(got, want) || len(rep.Deletes) != 0 {
 		t.Fatalf("first run sent %v, deleted %v; want %v", got, rep.Deletes, want)
 	}
@@ -210,9 +210,6 @@ func TestSyncIntoALocalBrain(t *testing.T) {
 	}
 	if !linked {
 		t.Fatalf("no chunk mentions the note's entity: %+v", around.Edges)
-	}
-	if got := e.edges(t, "holding:"+h.ID); !slices.Equal(got, []string{"held_in entity:noted:currency:usd"}) {
-		t.Fatalf("holding edges = %v", got)
 	}
 	if got := e.edges(t, week); !slices.Equal(got, []string{"spent_on " + EntityID("alice", "project:"+kyoto.ID)}) {
 		t.Fatalf("week edges = %v", got)
@@ -307,16 +304,16 @@ func TestSyncIntoALocalBrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := ledger["note:"+note.ID]; ok || len(ledger) != 5 {
+	if _, ok := ledger["note:"+note.ID]; ok || len(ledger) != 4 {
 		t.Fatalf("ledger = %v", ledger)
 	}
 
 	// --full resends everything; a new target starts over.
-	if rep = e.run(t, Options{Full: true}); len(rep.Upserts) != 5 || rep.Unchanged != 0 {
+	if rep = e.run(t, Options{Full: true}); len(rep.Upserts) != 4 || rep.Unchanged != 0 {
 		t.Fatalf("full: %+v", rep)
 	}
 	e.sync.Target = "elsewhere/noted"
-	if rep = e.run(t, Options{}); len(rep.Upserts) != 5 || len(rep.Deletes) != 0 {
+	if rep = e.run(t, Options{}); len(rep.Upserts) != 4 || len(rep.Deletes) != 0 {
 		t.Fatalf("new target: %+v", rep)
 	}
 }
@@ -434,11 +431,7 @@ func TestSpacesClosedToAIStayOut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h, err := st.CreateHolding(ctx, store.Holding{UserID: uid, Symbol: "VOO", Currency: "USD", TimeZone: "UTC"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rep := e.run(t, Options{}); len(rep.Upserts) != 3 {
+	if rep := e.run(t, Options{}); len(rep.Upserts) != 2 {
 		t.Fatalf("sent %v", rep.Upserts)
 	}
 	// Closing work to AI withdraws what came from it.
@@ -458,12 +451,12 @@ func TestSpacesClosedToAIStayOut(t *testing.T) {
 	if rep := e.run(t, Options{}); len(rep.Upserts) != 0 {
 		t.Fatalf("a new work note was sent: %v", rep.Upserts)
 	}
-	// Holdings count as life.
+	// Closing life withdraws the life note.
 	if _, err := st.SetAIAccess(ctx, uid, true, false); err != nil {
 		t.Fatal(err)
 	}
 	rep = e.run(t, Options{})
-	if got := sorted(rep.Deletes); !slices.Equal(got, sorted([]string{"note:" + life.ID, "holding:" + h.ID})) || len(rep.Upserts) != 2 {
+	if got := sorted(rep.Deletes); !slices.Equal(got, []string{"note:" + life.ID}) || len(rep.Upserts) != 2 {
 		t.Fatalf("after closing life: %+v", rep)
 	}
 }

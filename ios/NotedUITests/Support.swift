@@ -177,7 +177,7 @@ class NotedUITestCase: XCTestCase {
             limit = min(limit, tabs.frame.minY - 4)
         }
         // A page's own bottom bar (it floats above the keyboard).
-        for id in ["create-add", "project-add", "holding-buy", "link-confirm"] {
+        for id in ["create-add", "project-add", "link-confirm"] {
             let b = app.buttons[id]
             if b.exists && b.frame.minY > h / 3 { limit = min(limit, b.frame.minY - 14) }
         }
