@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// 新建 (pushed by the "+", 日历's empty slots, a project's 添加 menu …): 待办 · 日程 · 项目 · 目标.
-/// Each kind keeps an unsaved draft. Notes are written from 笔记, not here.
+/// Each kind keeps an unsaved draft. Notes are written from 笔记, not here. With AI on, the one
+/// input box (CaptureBar) sits on top: what is typed there goes to 提问 instead of a form.
 struct CreateView: View {
     @Environment(AppData.self) private var data
     @Environment(Session.self) private var session
@@ -19,9 +20,20 @@ struct CreateView: View {
     @State private var addingDimension = false
     @State private var confirmDiscard = false
     @FocusState private var titleFocused: Bool
+    @State private var capture = ""
+    @FocusState private var captureFocused: Bool
 
     var body: some View {
         List {
+            if showsCapture {
+                Section {
+                    CaptureBar(text: $capture, focus: $captureFocused) { text in
+                        captureFocused = false
+                        router.replaceTop(.ask(text))
+                    }
+                }
+                .listSectionSpacing(16)
+            }
             Section {
                 Picker("类型", selection: kindSelection) {
                     ForEach(CreateKind.allCases) { Text($0.label).tag($0) }
@@ -129,6 +141,11 @@ struct CreateView: View {
 
     // MARK: state
 
+    /// The input box: when AI is on and 新建 was not opened for a time slot or inside a project.
+    private var showsCapture: Bool {
+        session.aiChat && spec.start == nil && spec.projectID.isEmpty
+    }
+
     private var draft: Binding<CreateDraft> {
         Binding(get: { drafts[kind] ?? CreateDraft() }, set: { drafts[kind] = $0 })
     }
@@ -181,7 +198,7 @@ struct CreateView: View {
         kind = k
         Task {
             try? await Task.sleep(for: .milliseconds(450))
-            titleFocused = true
+            if showsCapture { captureFocused = true } else { titleFocused = true }
         }
     }
 

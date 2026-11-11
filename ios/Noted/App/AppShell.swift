@@ -42,10 +42,39 @@ struct AppShell: View {
         }
     }
 
+    #if DEBUG
+    /// NOTED_ROUTE for screenshots: suggestions, review, changes, modules, themeEditor, theme, pro,
+    /// settings, ask:<text>, schedule:<task id,…>, note:<id>, todo:<id>, project:<id>, goal:<id>.
+    private static func debugRoute(_ raw: String) -> Route? {
+        let parts = raw.split(separator: ":", maxSplits: 1).map(String.init)
+        let arg = parts.count > 1 ? parts[1] : ""
+        switch parts[0] {
+        case "suggestions": return .suggestions
+        case "review": return .review
+        case "changes": return .changes
+        case "modules": return .modules
+        case "themeEditor": return .themeEditor
+        case "theme": return .theme
+        case "pro": return .pro
+        case "settings": return .settings
+        case "ask": return .ask(arg)
+        case "schedule": return .schedule(arg.split(separator: ",").map(String.init))
+        case "note": return .note(arg)
+        case "todo": return .todo(arg)
+        case "project": return .project(arg)
+        case "goal": return .goal(arg)
+        default: return nil
+        }
+    }
+    #endif
+
     private func start() async {
         if let api = session.api { session.reminders.startWatching(api: api) { session.mode.space } }
         #if DEBUG
-        if ProcessInfo.processInfo.environment["NOTED_SHEET"] == "capture" { nav.create(CreateSpec(space: session.mode.space)) }
+        let env = ProcessInfo.processInfo.environment
+        if env["NOTED_SHEET"] == "capture" { nav.create(CreateSpec(space: session.mode.space)) }
+        if let m = env["NOTED_MODE"], let mode = Mode.allCases.first(where: { "\($0)" == m }) { session.mode = mode }
+        if let raw = env["NOTED_ROUTE"], let r = Self.debugRoute(raw) { nav.current.push(r) }
         #endif
         async let loaded: Void = data.refreshAll()
         async let prefs: Void = session.loadPreferences()
@@ -68,8 +97,9 @@ private struct TabStack<Root: View>: View {
     var body: some View {
         NavigationStack(path: $router.path) {
             root
+                .themedPage()
                 .safeAreaInset(edge: .bottom, spacing: 0) { AppTabBar() }
-                .navigationDestination(for: Route.self) { RouteDestination(route: $0) }
+                .navigationDestination(for: Route.self) { RouteDestination(route: $0).themedPage() }
         }
         .environment(router)
     }

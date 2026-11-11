@@ -32,6 +32,8 @@ struct NotedApp: App {
             .environment(navigation)
             .environment(\.palette, session.palette)
             .environment(\.mode, session.mode)
+            // 密度: the theme's row height; 日光's standard is the system's 44.
+            .environment(\.defaultMinListRowHeight, max(36, session.palette.rowHeight - 8))
             .tint(session.accent)
             .preferredColorScheme(.light)
         }

@@ -10,7 +10,17 @@ struct ProScreen: View {
     @State private var loaded = false
     @State private var manage = false
 
-    private static let features = ["多设备同步", "接入 AI 助手（MCP）", "无限项目与目标", "导出全部数据"]
+    /// 功能 · 免费 · Pro. The first rows are not gated anywhere in the app, so they are marked free.
+    private static let features: [(String, Bool)] = [
+        ("内置主题（日光、纸本、苔绿）", true),
+        ("多设备同步", true),
+        ("接入 AI 助手（MCP）", true),
+        ("无限项目与目标", true),
+        ("导出全部数据", true),
+        ("自定义主题与配色", false),
+        ("自定义概览页模块与顺序", false),
+        ("桌面与锁屏小组件", false),
+    ]
 
     var body: some View {
         let pro = session.pro
@@ -33,13 +43,27 @@ struct ProScreen: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
             }
             Section {
-                ForEach(Self.features, id: \.self) { f in
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark").font(.body.weight(.semibold)).foregroundStyle(.success)
-                        Text(f)
-                    }
-                    .accessibilityElement(children: .combine)
+                HStack(spacing: 0) {
+                    Text("功能")
+                    Spacer(minLength: 8)
+                    Text("免费").frame(width: 48)
+                    Text("PRO").frame(width: 48)
                 }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondaryText)
+                .accessibilityHidden(true)
+                ForEach(Self.features, id: \.0) { f in
+                    HStack(spacing: 0) {
+                        Text(f.0)
+                        Spacer(minLength: 8)
+                        mark(f.1).frame(width: 48)
+                        mark(true).frame(width: 48)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(f.1 ? "\(f.0)，免费" : "\(f.0)，Pro")
+                }
+            } footer: {
+                Text("订阅由 App Store 管理，可随时取消。取消后已有的主题和布局继续生效，只是不能再修改。")
             }
             if pro.isPro {
                 Section {
@@ -106,6 +130,15 @@ struct ProScreen: View {
                              price: y.displayPrice, period: "每年", isOn: yearly) { yearly = true }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func mark(_ on: Bool) -> some View {
+        if on {
+            Image(systemName: "checkmark").font(.subheadline.weight(.semibold)).foregroundStyle(.success)
+        } else {
+            Text("—").foregroundStyle(.tertiaryText)
         }
     }
 

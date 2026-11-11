@@ -195,6 +195,12 @@ struct TodoDetailView: View {
             } label: {
                 Label("推迟到明天", systemImage: "clock")
             }
+            if !task.completed && !task.hasClockTime {
+                Button { router.push(.schedule([task.id])) } label: {
+                    Label("排进空档", systemImage: "calendar.badge.plus")
+                }
+                .accessibilityIdentifier("todo-schedule")
+            }
             Divider()
             Button(role: .destructive) { confirmDelete = true } label: {
                 Label("删除", systemImage: "trash")

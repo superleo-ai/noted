@@ -8,6 +8,7 @@ struct SettingsScreen: View {
 
     @State private var ai: AppData.AISettings?
     @State private var aiLoaded = false
+    @State private var changeCount: Int?
     @State private var editingEmail = false
     @State private var confirmUnlink = false
     @State private var confirmSignOut = false
@@ -28,6 +29,8 @@ struct SettingsScreen: View {
                     FieldLabel("主题", icon: "paintpalette", tile: .orange, value: accentLabel)
                 }
                 .accessibilityIdentifier("settings-theme")
+                proLink("自定义主题", icon: "slider.horizontal.3", tile: .rust, route: .themeEditor, id: "settings-theme-editor")
+                proLink("页面模块", icon: "square.grid.2x2", tile: .teal, route: .modules, id: "settings-modules")
                 muteToggle("工作模式下静音个人提醒", icon: "bell.slash", tile: .gray, \.lifeInWork)
                 muteToggle("个人模式下静音工作提醒", icon: "bell.slash", tile: .graphite, \.workInLife)
                 NavigationLink(value: Route.export) {
@@ -147,6 +150,17 @@ struct SettingsScreen: View {
                 featureToggle("建议", icon: "lightbulb.fill", tile: .orange, \.suggestions)
                 featureToggle("每周回顾", icon: "calendar.badge.clock", tile: .red, \.weeklyReview)
                 featureToggle("笔记摘要与标签", icon: "text.badge.star", tile: .green, \.noteTools)
+                if ai.features.weeklyReview {
+                    NavigationLink(value: Route.review) {
+                        FieldLabel("本周回顾", icon: "chart.bar.doc.horizontal", tile: .red)
+                    }
+                    .accessibilityIdentifier("settings-review")
+                }
+                NavigationLink(value: Route.changes) {
+                    FieldLabel("AI 的改动记录", icon: "clock.arrow.circlepath", tile: .graphite,
+                               value: changeCount.map { $0 > 0 ? "\($0) 条 · 可撤销" : "\($0) 条" })
+                }
+                .accessibilityIdentifier("settings-changes")
             }
         } header: {
             Text("智能")
@@ -154,6 +168,24 @@ struct SettingsScreen: View {
     }
 
     // MARK: rows
+
+    /// A Pro page: the PRO tag until Pro is on.
+    private func proLink(_ title: String, icon: String, tile: TileColor, route: Route, id: String) -> some View {
+        NavigationLink(value: route) {
+            HStack {
+                FieldLabel(title, icon: icon, tile: tile)
+                if !session.pro.isPro {
+                    Spacer(minLength: 8)
+                    Text("PRO").font(.caption2.weight(.bold))
+                        .padding(.horizontal, 6).frame(height: 18)
+                        .foregroundStyle(TileColor.rust.color)
+                        .background(TileColor.rust.color.wash(0.12), in: RoundedRectangle(cornerRadius: 5))
+                }
+            }
+        }
+        .accessibilityLabel(session.pro.isPro ? title : "\(title)，Pro")
+        .accessibilityIdentifier(id)
+    }
 
     private func muteToggle(_ title: String, icon: String, tile: TileColor, _ key: WritableKeyPath<MuteRules, Bool>) -> some View {
         Toggle(isOn: Binding(get: { session.mute[keyPath: key] }, set: { v in
@@ -212,7 +244,7 @@ struct SettingsScreen: View {
     }
 
     private var accentLabel: String {
-        AccentChoice(rawValue: session.theme.accent ?? AccentChoice.blue.rawValue)?.label ?? "自定义"
+        session.theme.label
     }
 
     private var aiStatusText: String {
@@ -237,6 +269,9 @@ struct SettingsScreen: View {
         _ = await (account, tokens)
         ai = await settings
         aiLoaded = true
+        if ai?.status.enabled == true, let c = await data.listChanges() {
+            changeCount = c.filter { !$0.undone }.count
+        }
     }
 }
 

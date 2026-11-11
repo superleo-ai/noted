@@ -1,59 +1,83 @@
 import SwiftUI
 
-/// 主题: the accent color, saved to the "ui.theme" preference so every device shows it.
+/// 主题: the built-in themes (and 我的主题 once saved), whether work and personal each get their
+/// color, and a preview. Saved to the "ui.theme" preference so every device shows it.
 struct ThemeScreen: View {
     @Environment(Session.self) private var session
-    @State private var demoOn = true
+    @Environment(Router.self) private var router
+    @State private var confirmDelete = false
 
-    private var selected: AccentChoice {
-        AccentChoice(rawValue: session.theme.accent ?? AccentChoice.blue.rawValue) ?? .blue
-    }
+    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
     var body: some View {
+        let theme = session.theme
         List {
-            Section("强调色") {
-                ForEach(AccentChoice.allCases) { c in
-                    Button { pick(c) } label: {
-                        HStack(spacing: 14) {
-                            Circle().fill(c.color).frame(width: 22, height: 22)
-                            Text(c.label).foregroundStyle(.primary)
-                            Spacer()
-                            if c == selected {
-                                Image(systemName: "checkmark").font(.body.weight(.semibold)).foregroundStyle(.tint)
-                            }
-                        }
-                        .contentShape(Rectangle())
+            Section("主题") {
+                LazyVGrid(columns: columns, spacing: 14) {
+                    ForEach(BuiltinTheme.allCases) { t in
+                        ThemeTile(palette: t.palette, title: t.label, isOn: theme.base == t.rawValue) { pick(t.rawValue) }
+                            .accessibilityIdentifier("theme-\(t.rawValue)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(c.label)
-                    .accessibilityAddTraits(c == selected ? .isSelected : [])
-                    .accessibilityIdentifier("accent-\(c.label)")
-                }
-            }
-            Section("预览") {
-                HStack(spacing: 12) {
-                    Button("按钮") {}
-                        .buttonStyle(.wide(.filled, small: true))
-                        .accessibilityLabel("示例按钮")
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 24, height: 24)
-                        .background(Circle().fill(.tint))
-                        .accessibilityHidden(true)
-                    Toggle("示例开关", isOn: $demoOn).labelsHidden().tint(.switchOn)
+                    if let mine = theme.mine {
+                        ThemeTile(palette: mine.palette, title: "我的主题", isOn: theme.base == ThemeSpec.custom) { pick(ThemeSpec.custom) }
+                            .contextMenu {
+                                Button { router.push(.themeEditor) } label: { Label("编辑", systemImage: "slider.horizontal.3") }
+                                Button(role: .destructive) { confirmDelete = true } label: { Label("删除", systemImage: "trash") }
+                            }
+                            .accessibilityIdentifier("theme-custom")
+                    }
                 }
                 .padding(.vertical, 6)
             }
+            Section {
+                Toggle("工作 / 个人各用一种颜色", isOn: Binding(get: { theme.modeColors }, set: setModeColors))
+                    .tint(.switchOn)
+                    .accessibilityIdentifier("theme-mode-colors")
+                NavigationLink(value: Route.themeEditor) {
+                    HStack {
+                        Text("自定义主题")
+                        if !session.pro.isPro {
+                            Spacer(minLength: 8)
+                            ProMark()
+                        }
+                    }
+                }
+                .accessibilityLabel(session.pro.isPro ? "自定义主题" : "自定义主题，Pro")
+                .accessibilityIdentifier("theme-editor")
+            }
+            Section {
+                ThemePreviewCard(palette: session.palette)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+            .listSectionSeparator(.hidden)
         }
         .navigationTitle("主题")
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("删除我的主题？", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("删除", role: .destructive) { deleteMine() }
+            Button("取消", role: .cancel) {}
+        }
     }
 
-    private func pick(_ c: AccentChoice) {
+    private func pick(_ id: String) {
         var t = session.theme
-        // Only differences from the default are stored.
-        t.accent = c == .blue ? nil : c.rawValue
+        guard t.base != id || !t.overrides.isEmpty else { return }
+        t.select(id)
+        withAnimation(.snappy) { session.saveTheme(t) }
+    }
+
+    private func setModeColors(_ on: Bool) {
+        var t = session.theme
+        t.modeColors = on
+        withAnimation(.snappy) { session.saveTheme(t) }
+    }
+
+    private func deleteMine() {
+        var t = session.theme
+        if t.base == ThemeSpec.custom { t.select(t.mine?.base ?? "daylight") }
+        t.mine = nil
         withAnimation(.snappy) { session.saveTheme(t) }
     }
 }

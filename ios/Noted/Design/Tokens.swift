@@ -4,24 +4,26 @@ import UIKit
 // The prototype's :root tokens. Light only. Use them as `.foregroundStyle(.personal)`,
 // `Color.success`, `.background(.groupedBackground)`. The accent is the environment tint
 // (`.tint`, `Color.accentColor`), set at the root from Session.accent, so the 主题 page can change it.
+// The brand, space and status colors follow the chosen theme (LiveTheme); the grays and the
+// page and cell backgrounds stay the system's, so they match the native grouped lists.
 
 extension ShapeStyle where Self == Color {
-    /// Default accent, #1F5BFF. Read the live one with `.tint` / `Color.accentColor`.
-    static var brand: Color { Color(hex: 0x1F5BFF) }
+    /// The theme's accent (#1F5BFF in 日光). Read the live, mode-following one with `.tint` / `Color.accentColor`.
+    static var brand: Color { LiveTheme.shared.palette.accentDef }
     /// 个人 space.
-    static var personal: Color { Color(hex: 0xC2410C) }
+    static var personal: Color { LiveTheme.shared.palette.life }
     /// 工作 space.
-    static var work: Color { Color(hex: 0x1F5BFF) }
-    static var success: Color { Color(hex: 0x1B8A55) }
-    static var danger: Color { Color(hex: 0xE5484D) }
-    static var warning: Color { Color(hex: 0xE8890C) }
+    static var work: Color { LiveTheme.shared.palette.work }
+    static var success: Color { LiveTheme.shared.palette.ok }
+    static var danger: Color { LiveTheme.shared.palette.bad }
+    static var warning: Color { LiveTheme.shared.palette.warn }
     /// The iOS switch green.
     static var switchOn: Color { Color(hex: 0x34C759) }
 
-    /// Page background behind inset-grouped lists, #F2F2F7.
-    static var groupedBackground: Color { Color(hex: 0xF2F2F7) }
-    /// List cells and cards.
-    static var cell: Color { .white }
+    /// Page background behind inset-grouped lists: the theme's ground (#F2F2F7 in 日光).
+    static var groupedBackground: Color { LiveTheme.shared.palette.bg }
+    /// List cells and cards: the theme's surface (white in 日光).
+    static var cell: Color { LiveTheme.shared.palette.surface }
     /// rgba(60,60,67,.6): subtitles, values, captions.
     static var secondaryText: Color { Color(red: 60 / 255, green: 60 / 255, blue: 67 / 255).opacity(0.6) }
     /// rgba(60,60,67,.3): placeholders, chevrons.
@@ -83,4 +85,13 @@ enum AccentChoice: UInt32, CaseIterable, Identifiable, Sendable {
 extension Noted_V1_Space {
     /// The space's color: 工作 blue, everything else 个人 rust.
     var tint: Color { self == .work ? .work : .personal }
+}
+
+extension View {
+    /// Every page's ground follows the theme: lists drop their own background and show the
+    /// theme's behind them. Applied once per page by the shell (tab roots and RouteDestination).
+    func themedPage() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Color.groupedBackground.ignoresSafeArea())
+    }
 }

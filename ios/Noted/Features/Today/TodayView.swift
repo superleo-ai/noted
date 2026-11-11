@@ -1,45 +1,89 @@
 import SwiftUI
 
-/// 今天 (tab root): 日程与待办 (a timeline with the now line), 进行中, 今天打卡 and 置顶项目.
+/// 今天 (tab root): a range switch (今天 / 接下来 / 这周 / 这个月) over the blocks of the 页面模块
+/// layout: 今日简报, 日程与待办, 本周目标, 进行中, 今天打卡, 置顶项目, 最近笔记 and 近 14 天.
 struct TodayView: View {
     @Environment(AppData.self) private var data
-    @Environment(Router.self) private var router
+    @Environment(Session.self) private var session
+    @State private var range: TodayRange = .today
+    @State private var assist = TodayAssist()
+    /// mode + day the briefing was fetched for, so coming back to the tab does not ask again.
+    @State private var briefingKey = ""
 
     var body: some View {
         TimelineView(.everyMinute) { ctx in
-            TodayList(now: ctx.date)
+            TodayList(now: ctx.date, range: $range, assist: assist) { await loadAssist(force: true) }
         }
         .navigationTitle("今天")
-        .largeSubtitle(Fmt.mdw(.now))
+        .largeSubtitle(range.subtitle(.now))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }
             ToolbarItem(placement: .topBarTrailing) { SettingsAvatarButton() }
         }
-        .task { await data.loadMonth(.now) }
+        .task(id: range) {
+            await data.loadMonth(.now)
+            if range == .next { await data.loadMonth(Date.now.adding(days: 14)) }
+        }
+        .onAppear { Task { await loadAssist(force: false) } }
+        .onChange(of: session.mode) { Task { await loadAssist(force: false) } }
+    }
+
+    /// The briefing (once per mode and day unless forced) and the suggestion count (every time).
+    private func loadAssist(force: Bool) async {
+        guard let s = await data.loadAISettings(), s.status.enabled else {
+            assist = TodayAssist(); briefingKey = ""
+            return
+        }
+        var a = assist
+        a.review = s.features.weeklyReview
+        a.briefingOn = s.status.chat && s.features.dailyBriefing
+        a.suggestionsOn = s.features.suggestions
+        let space = session.mode.space
+        let key = "\(session.mode.rawValue)-\(Fmt.ymd(.now))"
+        if !a.briefingOn {
+            a.briefing = nil
+        } else if force || key != briefingKey {
+            a.briefing = await data.dailyBriefing(space: space)
+            briefingKey = key
+        }
+        if a.suggestionsOn { a.suggestions = await data.listSuggestions(space: space).count } else { a.suggestions = 0 }
+        if space == session.mode.space { assist = a }
     }
 }
 
 private struct TodayList: View {
     @Environment(AppData.self) private var data
+    @Environment(Session.self) private var session
     @Environment(Router.self) private var router
     @Environment(Toaster.self) private var toaster
     let now: Date
+    @Binding var range: TodayRange
+    let assist: TodayAssist
+    let reloadAssist: @MainActor () async -> Void
     @State private var confirmDelete: Noted_V1_Task?
+    @State private var showPast = false
+
+    /// The 页面模块 layout for this mode; without Pro the default one.
+    private var modules: [ModuleState] {
+        (session.pro.isPro ? session.layout.modules(for: session.mode) : Layout.standard).filter(\.on)
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                agenda
-                inProgress
-                checkIns
-                pinned
+                rangePicker
+                ForEach(modules, id: \.id) { m in module(m.id) }
             }
             .listStyle(.insetGrouped)
             .environment(\.defaultMinListRowHeight, 10)
-            .refreshable { await data.refreshAll() }
+            .refreshable {
+                await data.refreshAll()
+                await reloadAssist()
+            }
             .onChange(of: router.scrollToTopRequest) {
                 withAnimation(.snappy) { proxy.scrollTo(TodayList.topID, anchor: .top) }
             }
+            .onChange(of: range) { showPast = false }
         }
         .confirmationDialog("删除待办？", isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }),
                             titleVisibility: .visible, presenting: confirmDelete) { t in
@@ -51,6 +95,58 @@ private struct TodayList: View {
             Text("“\(t.title)”")
         }
         .accessibilityIdentifier("today-list")
+    }
+
+    @ViewBuilder
+    private func module(_ id: String) -> some View {
+        switch id {
+        case "briefing": briefing
+        case "items": items
+        case "goals": weekGoals
+        case "inProgress": inProgress
+        case "checkIns": checkIns
+        case "pinned": pinned
+        case "notes": recentNotes
+        case "heat": heat
+        default: EmptyView()
+        }
+    }
+
+    private var rangePicker: some View {
+        Section {
+            Picker("范围", selection: $range) {
+                ForEach(TodayRange.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .accessibilityIdentifier("today-range")
+            .id(Self.topID)
+        }
+        .listSectionSpacing(.compact)
+    }
+
+    // MARK: 今日简报
+
+    @ViewBuilder
+    private var briefing: some View {
+        let text = range == .today ? assist.briefing : nil
+        if text != nil || assist.suggestions > 0 {
+            Section {
+                BriefingRow(text: text, suggestions: assist.suggestions)
+            }
+        }
+    }
+
+    // MARK: 日程与待办
+
+    @ViewBuilder
+    private var items: some View {
+        switch range {
+        case .today: agenda
+        case .next: upcoming
+        case .week, .month: period
+        }
     }
 
     static let topID = "today-top"
@@ -115,12 +211,8 @@ private struct TodayList: View {
                     if data.isLoaded { EmptyState(text: "今天没有安排") }
                     else { ProgressView().frame(maxWidth: .infinity).padding(.vertical, 22) }
                 }
-                .id(Self.topID)
             }
-            ForEach(Array(lines.enumerated()), id: \.element.id) { i, line in
-                row(line)
-                    .id(i == 0 ? Self.topID : line.id)
-            }
+            ForEach(lines, id: \.id) { row($0) }
         } header: {
             VStack(alignment: .leading, spacing: 0) {
                 if #unavailable(iOS 26.0) {
@@ -150,6 +242,149 @@ private struct TodayList: View {
                 .font(.footnote).foregroundStyle(.secondaryText)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 4, trailing: 16))
                 .listRowSeparator(.hidden)
+        }
+    }
+
+    // MARK: 接下来, 这周, 这个月
+
+    /// One day's lines for the range views: overdue to-dos (today only), then events and timed
+    /// to-dos by time, then all-day events and date-only to-dos.
+    private func dayLines(_ day: Date) -> [Line] {
+        let start = day.startOfDay
+        let occs = data.occurrences(on: day)
+        let tasks = data.tasks(on: day)
+        var out: [Line] = day.isSameDay(as: now) ? data.overdueTasks(now: now).map { .todo($0) } : []
+        var timed: [(minute: Int, line: Line)] = []
+        for o in occs where !o.event.allDay { timed.append((o.start < start ? 0 : o.start.minuteOfDay, .event(o))) }
+        for t in tasks where t.hasClockTime { timed.append((t.dueTime.date.minuteOfDay, .todo(t))) }
+        out += timed.sorted { $0.minute < $1.minute }.map(\.line)
+        out += occs.filter(\.event.allDay).map { .event($0) }
+        out += tasks.filter { !$0.hasClockTime }.sorted { !$0.completed && $1.completed }.map { .todo($0) }
+        return out
+    }
+
+    private func count(_ day: Date) -> Int { data.occurrences(on: day).count + data.tasks(on: day).count }
+
+    private func daySection(_ day: Date) -> some View {
+        Section {
+            ForEach(dayLines(day), id: \.id) { row($0) }
+        } header: {
+            Text(day.todayGroupTitle(now: now))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(day.isSameDay(as: now) ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondaryText))
+                .textCase(nil)
+        }
+    }
+
+    @ViewBuilder
+    private var upcoming: some View {
+        let days = TodayRange.next.days(now).filter { count($0) > 0 }
+        if days.isEmpty {
+            Section {
+                if data.isLoaded { EmptyState(text: "接下来 14 天没有安排") }
+                else { ProgressView().frame(maxWidth: .infinity).padding(.vertical, 22) }
+            }
+        }
+        ForEach(days, id: \.self) { daySection($0) }
+    }
+
+    @ViewBuilder
+    private var period: some View {
+        let days = range.days(now)
+        let counts = days.map(count)
+        let today = now.startOfDay
+        let past = days.filter { $0 < today }
+        let rest = days.filter { $0 >= today && (count($0) > 0 || ($0 == today && !data.overdueTasks(now: now).isEmpty)) }
+        Section {
+            if range == .week { TodayWeekStrip(days: days, counts: counts, now: now) }
+            else { TodayMonthGrid(days: days, counts: counts, now: now) }
+            if !past.isEmpty {
+                Button { withAnimation(.snappy) { showPast.toggle() } } label: {
+                    HStack {
+                        Text(pastSummary(past)).font(.subheadline).foregroundStyle(.secondaryText)
+                        Spacer()
+                        Image(systemName: "chevron.down").font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.tertiaryText)
+                            .rotationEffect(.degrees(showPast ? 180 : 0))
+                    }
+                    .frame(minHeight: 40)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(showPast ? "收起已过去的日子" : "展开已过去的日子")
+                .accessibilityIdentifier("today-past-toggle")
+            }
+        } header: {
+            VStack(alignment: .leading, spacing: 0) {
+                if #unavailable(iOS 26.0) {
+                    Text(range.subtitle(now)).font(.subheadline).foregroundStyle(.secondaryText)
+                        .textCase(nil).padding(.bottom, 10)
+                }
+                SectionHeader(range == .week ? "这周" : "这个月", action: "日历") { router.select(.calendar) }
+            }
+            .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 0))
+        }
+        if showPast {
+            ForEach(past.filter { count($0) > 0 }, id: \.self) { daySection($0) }
+        }
+        if rest.isEmpty {
+            Section { EmptyState(text: range == .week ? "这周没有更多安排" : "这个月没有更多安排") }
+        }
+        ForEach(rest, id: \.self) { daySection($0) }
+    }
+
+    /// "周一 – 周三 · 已完成 5 项", "11月1日 – 10日 · 已完成 12 项".
+    private func pastSummary(_ past: [Date]) -> String {
+        guard let first = past.first, let last = past.last else { return "" }
+        let name: (Date) -> String = { range == .week ? Fmt.weekday($0) : Fmt.md($0) }
+        let span = first == last ? name(first) : "\(name(first)) – \(name(last))"
+        let done = past.reduce(0) { n, d in
+            n + data.tasks(on: d).filter(\.completed).count + data.occurrences(on: d).filter { $0.start >= d.startOfDay }.count
+        }
+        return "\(span) · 已完成 \(done) 项"
+    }
+
+    // MARK: 本周目标
+
+    @ViewBuilder
+    private var weekGoals: some View {
+        let goals = data.goals.filter { !$0.archived && data.inSpace($0.space) && ($0.period == .week || $0.period == .unspecified) }
+        if !goals.isEmpty {
+            Section {
+                WeekGoalsStrip(goals: goals)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            } header: {
+                SectionHeader("本周目标", action: assist.review ? "回顾" : nil) { router.push(.review) }
+            }
+        }
+    }
+
+    // MARK: 最近笔记
+
+    @ViewBuilder
+    private var recentNotes: some View {
+        let notes = data.visibleNotes.filter { !$0.archived }.sorted { $0.updateTime.date > $1.updateTime.date }.prefix(3)
+        if !notes.isEmpty {
+            Section {
+                ForEach(Array(notes), id: \.id) { RecentNoteRow(note: $0, now: now) }
+            } header: {
+                SectionHeader("最近笔记", action: "全部") { router.select(.notes) }
+            }
+        }
+    }
+
+    // MARK: 近 14 天
+
+    @ViewBuilder
+    private var heat: some View {
+        let goals = data.goals.filter { !$0.archived && data.inSpace($0.space) && !$0.progress.recent.isEmpty }
+        if !goals.isEmpty {
+            Section {
+                ForEach(goals, id: \.id) { HeatRow(goal: $0) }
+            } header: {
+                SectionHeader("近 14 天")
+            }
         }
     }
 

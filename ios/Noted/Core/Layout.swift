@@ -5,17 +5,25 @@ struct ModuleState: Codable, Equatable, Identifiable, Sendable {
     var on: Bool
 }
 
-/// Which blocks the overview shows and in what order, as stored in "ui.layout".
+/// Which blocks the 今天 page shows and in what order, as stored in "ui.layout".
 struct Layout: Codable, Equatable, Sendable {
-    static let catalog: [(id: String, title: String, detail: String)] = [
-        ("pinned", "置顶项目", "横向卡片"),
-        ("items", "日程与待办", "按时间排列"),
-        ("goals", "目标", "进度条 · 紧凑"),
-        ("briefing", "今日简报", "一段自动生成的文字"),
-        ("notes", "最近笔记", "最近编辑的 3 条"),
-        ("heat", "近 14 天热力", "每个目标一行"),
+    /// Every block the 今天 page can show, in the default order, and whether it is on by default.
+    static let catalog: [(id: String, title: String, detail: String, on: Bool)] = [
+        ("briefing", "今日简报", "一段自动生成的文字", true),
+        ("items", "日程与待办", "按时间排列", true),
+        ("goals", "本周目标", "进度条 · 紧凑", true),
+        ("inProgress", "进行中", "做过几次的待办", true),
+        ("checkIns", "今天打卡", "目标和打卡按钮", true),
+        ("pinned", "置顶项目", "横向卡片", true),
+        ("notes", "最近笔记", "最近编辑的 3 条", false),
+        ("heat", "近 14 天热力", "每个目标一行", false),
     ]
-    static let standard: [ModuleState] = catalog.map { ModuleState(id: $0.id, on: ["pinned", "items", "goals"].contains($0.id)) }
+    static let standard: [ModuleState] = catalog.map { ModuleState(id: $0.id, on: $0.on) }
+
+    static func info(_ id: String) -> (title: String, detail: String) {
+        let c = catalog.first { $0.id == id }
+        return (c?.title ?? id, c?.detail ?? "")
+    }
 
     var perMode = false
     var all = Layout.standard
@@ -24,7 +32,7 @@ struct Layout: Codable, Equatable, Sendable {
 
     init() {}
 
-    /// Any field may be missing, and modules added since it was saved are appended switched off.
+    /// Any field may be missing, and modules added since it was saved are appended in their default state.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         perMode = try c.decodeIfPresent(Bool.self, forKey: .perMode) ?? false
@@ -37,7 +45,7 @@ struct Layout: Codable, Equatable, Sendable {
         guard let saved, !saved.isEmpty else { return standard }
         let known = Set(catalog.map(\.id))
         var out = saved.filter { known.contains($0.id) }
-        for m in standard where !out.contains(where: { $0.id == m.id }) { out.append(ModuleState(id: m.id, on: false)) }
+        for m in standard where !out.contains(where: { $0.id == m.id }) { out.append(m) }
         return out
     }
 

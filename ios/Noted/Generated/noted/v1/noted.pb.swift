@@ -3696,9 +3696,22 @@ public nonisolated struct Noted_V1_ProposeScheduleRequest: Sendable {
 
   public var timeZone: String = String()
 
+  /// Look for free time from this moment on (e.g. "换个时间": after the slot just offered).
+  /// Unset or in the past: now.
+  public var from: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {_from ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_from = newValue}
+  }
+  /// Returns true if `from` has been explicitly set.
+  public var hasFrom: Bool {self._from != nil}
+  /// Clears the value of `from`. Subsequent reads from it will return its default value.
+  public mutating func clearFrom() {self._from = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+
+  fileprivate var _from: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 public nonisolated struct Noted_V1_GetWeeklyReviewRequest: Sendable {
@@ -11599,7 +11612,7 @@ nonisolated extension Noted_V1_DismissProposalRequest: SwiftProtobuf.Message, Sw
 
 nonisolated extension Noted_V1_ProposeScheduleRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ProposeScheduleRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}task_ids\0\u{3}duration_minutes\0\u{1}days\0\u{3}time_zone\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}task_ids\0\u{3}duration_minutes\0\u{1}days\0\u{3}time_zone\0\u{1}from\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -11611,12 +11624,17 @@ nonisolated extension Noted_V1_ProposeScheduleRequest: SwiftProtobuf.Message, Sw
       case 2: try { try decoder.decodeSingularInt32Field(value: &self.durationMinutes) }()
       case 3: try { try decoder.decodeSingularInt32Field(value: &self.days) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.timeZone) }()
+      case 5: try { try decoder.decodeSingularMessageField(value: &self._from) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.taskIds.isEmpty {
       try visitor.visitRepeatedStringField(value: self.taskIds, fieldNumber: 1)
     }
@@ -11629,6 +11647,9 @@ nonisolated extension Noted_V1_ProposeScheduleRequest: SwiftProtobuf.Message, Sw
     if !self.timeZone.isEmpty {
       try visitor.visitSingularStringField(value: self.timeZone, fieldNumber: 4)
     }
+    try { if let v = self._from {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -11637,6 +11658,7 @@ nonisolated extension Noted_V1_ProposeScheduleRequest: SwiftProtobuf.Message, Sw
     if lhs.durationMinutes != rhs.durationMinutes {return false}
     if lhs.days != rhs.days {return false}
     if lhs.timeZone != rhs.timeZone {return false}
+    if lhs._from != rhs._from {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

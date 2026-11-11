@@ -1062,6 +1062,9 @@ message ProposeScheduleRequest {
   int32 duration_minutes = 2; // per task, default 60
   int32 days = 3;             // how far ahead to look, default 5, max 14
   string time_zone = 4;
+  // Look for free time from this moment on (e.g. "换个时间": after the slot just offered).
+  // Unset or in the past: now.
+  google.protobuf.Timestamp from = 5;
 }
 
 message GetWeeklyReviewRequest {

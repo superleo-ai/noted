@@ -31,6 +31,7 @@ struct NoteScreen: View {
     @State private var newTag = ""
     @State private var confirmDelete = false
     @State private var extract = ExtractState.idle
+    @State private var assist: NoteAssist?
 
     enum Field: Hashable { case title, body }
     enum SaveStatus: Equatable { case idle, saving, saved(Date), local }
@@ -80,11 +81,12 @@ struct NoteScreen: View {
                 metaRow
                 extractCard
                 TextField("标题", text: $note.title, axis: .vertical)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: LiveTheme.shared.palette.serif ? .serif : .default))
                     .focused($focus, equals: .title)
                     .submitLabel(.next)
                     .onSubmit { startEditing(cursorAtEnd: false) }
                     .accessibilityIdentifier("note-title")
+                assistCard
                 if editing { editor } else { preview }
             }
             .padding(.horizontal, 16)
@@ -111,6 +113,7 @@ struct NoteScreen: View {
             }
         }
         .onChange(of: note.content) { old, new in bodyChanged(old, new) }
+        .task(id: assistKey) { await loadAssist() }
         .onChange(of: focus) { _, f in
             if f != nil, !editing { editing = true }
             if f != .body { mention = nil }
@@ -609,6 +612,35 @@ struct NoteScreen: View {
         again = false
     }
 
+    // MARK: 摘要 and 建议标签
+
+    /// The saved version to ask about: none while typing, for a new note, or for a short one.
+    /// It changes once a save with new text lands, not on every keystroke.
+    private var assistKey: Int? {
+        guard session.aiNoteTools, !editing, let s = saved, !s.id.isEmpty, NoteAssist.worthAsking(s) else { return nil }
+        return NoteAssist.key(s)
+    }
+
+    @ViewBuilder private var assistCard: some View {
+        if session.aiNoteTools, let a = assist {
+            let tags = a.newTags(for: note)
+            if a.summary != nil || !tags.isEmpty {
+                NoteAssistCard(summary: a.summary, tags: tags) { addTag($0) }
+            }
+        }
+    }
+
+    private func loadAssist() async {
+        guard assistKey != nil, let s = saved else { return }
+        try? await Task.sleep(for: .milliseconds(500))
+        guard !Task.isCancelled else { return }
+        if let a = await data.noteAssist(s) {
+            assist = a
+        } else if !Task.isCancelled {
+            assist = nil
+        }
+    }
+
     // MARK: 提取待办
 
     @ViewBuilder private var extractCard: some View {
@@ -632,7 +664,7 @@ struct NoteScreen: View {
             .padding(14)
             .background(.fillQuiet, in: RoundedRectangle(cornerRadius: 12))
         case .ready(let p):
-            ExtractProposalCard(proposal: p) { added in
+            ProposalCard(proposal: p, title: "笔记里有 \(p.operations.count) 件事", idPrefix: "extract", acceptLabel: { "加入 \($0) 项待办" }) { added in
                 extract = .idle
                 if added > 0 { toaster.show("已加入 \(added) 项待办") }
             }
@@ -646,104 +678,6 @@ struct NoteScreen: View {
         extract = .loading
         guard let p = await data.extractTasks(noteID: note.id) else { extract = .idle; return }
         extract = p.operations.isEmpty ? .empty : .ready(p)
-    }
-}
-
-/// The to-dos the assistant found in the note, shown in place: pick which to add, fill what it
-/// could not know, then add them. Nothing is created before 加入.
-private struct ExtractProposalCard: View {
-    @Environment(AppData.self) private var data
-    let proposal: Noted_V1_Proposal
-    var onDone: (Int) -> Void
-
-    @State private var picked: Set<Int>
-    @State private var dates: [String: Date] = [:]
-    @State private var texts: [String: String] = [:]
-    @State private var busy = false
-
-    init(proposal: Noted_V1_Proposal, onDone: @escaping (Int) -> Void) {
-        self.proposal = proposal
-        self.onDone = onDone
-        _picked = State(initialValue: Set(proposal.operations.indices))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Label("笔记里有 \(proposal.operations.count) 件事", systemImage: "sparkles")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-            }
-            .padding(.horizontal, 14).padding(.vertical, 12)
-            ForEach(Array(proposal.operations.enumerated()), id: \.offset) { i, op in
-                Divider().padding(.leading, 14)
-                Button {
-                    if picked.contains(i) { picked.remove(i) } else { picked.insert(i) }
-                } label: {
-                    HStack(spacing: 12) {
-                        CheckMark(isOn: picked.contains(i), size: 22)
-                        Text(op.label).font(.subheadline).multilineTextAlignment(.leading)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, 14).frame(minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(picked.contains(i) ? .isSelected : [])
-            }
-            ForEach(proposal.inputs, id: \.name) { input in
-                Divider().padding(.leading, 14)
-                HStack {
-                    Text(input.label).font(.subheadline)
-                    Spacer()
-                    if input.type == "date" {
-                        DatePicker(input.label, selection: dateBinding(input.name), displayedComponents: .date)
-                            .labelsHidden()
-                            .environment(\.locale, Fmt.zh)
-                    } else {
-                        TextField(input.required ? "必填" : "选填", text: Binding(get: { texts[input.name] ?? "" }, set: { texts[input.name] = $0 }))
-                            .multilineTextAlignment(.trailing)
-                            .font(.subheadline)
-                    }
-                }
-                .padding(.horizontal, 14).frame(minHeight: 44)
-            }
-            Divider()
-            HStack(spacing: 10) {
-                Button("忽略") {
-                    Task { await data.dismissProposal(proposal.id) }
-                    onDone(0)
-                }
-                .buttonStyle(.wide(.gray, small: true))
-                .accessibilityIdentifier("extract-dismiss")
-                Button(busy ? "正在加入…" : "加入 \(picked.count) 项待办") { Task { await accept() } }
-                    .buttonStyle(.wide(.filled, small: true))
-                    .disabled(picked.isEmpty || busy || missingRequired)
-                    .accessibilityIdentifier("extract-accept")
-            }
-            .padding(12)
-        }
-        .background(.fillQuiet, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var missingRequired: Bool {
-        proposal.inputs.contains { $0.required && $0.type != "date" && (texts[$0.name] ?? "").trimmingCharacters(in: .whitespaces).isEmpty }
-    }
-
-    private func dateBinding(_ name: String) -> Binding<Date> {
-        Binding(get: { dates[name] ?? Date.now.startOfDay }, set: { dates[name] = $0 })
-    }
-
-    private func accept() async {
-        busy = true
-        defer { busy = false }
-        var inputs: [String: String] = [:]
-        for input in proposal.inputs {
-            if input.type == "date" { inputs[input.name] = Fmt.ymd(dates[input.name] ?? Date.now.startOfDay) }
-            else if let t = texts[input.name], !t.isEmpty { inputs[input.name] = t }
-        }
-        let n = picked.count
-        if await data.acceptProposal(proposal.id, indexes: picked.sorted(), inputs: inputs) != nil { onDone(n) }
     }
 }
 

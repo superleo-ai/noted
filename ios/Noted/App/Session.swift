@@ -34,12 +34,14 @@ final class Session {
             host = Session.hostedHost; port = "443"; tls = true
         }
         if let raw = d.string(forKey: "mode"), let m = Mode(rawValue: raw) { mode = m }
+        // The last theme seen, so the app opens in it before the server answers.
+        if let raw = d.data(forKey: "ui.theme"), let t = try? JSONDecoder().decode(ThemeSpec.self, from: raw) { theme = t }
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
         if env["NOTED_RESET"] == "1" {
             Keychain.remove("token")
-            for k in ["host", "port", "tls", "mode"] { d.removeObject(forKey: k) }
-            host = ""; port = "43872"; tls = false; mode = .all
+            for k in ["host", "port", "tls", "mode", "ui.theme"] { d.removeObject(forKey: k) }
+            host = ""; port = "43872"; tls = false; mode = .all; theme = ThemeSpec()
         }
         // UI tests start without the 新建 and note drafts an earlier test left behind.
         if env["NOTED_FRESH_DRAFTS"] == "1" {
@@ -53,9 +55,11 @@ final class Session {
             port = env["NOTED_PORT"] ?? port
             tls = env["NOTED_TLS"] == "1"
             api = try? API(host: h, port: Int(port) ?? 43872, tls: tls, token: t)
+            applyTheme()
             return
         }
         #endif
+        applyTheme()
         if !host.isEmpty, let token = Keychain.get("token") {
             api = try? API(host: host, port: Int(port) ?? 43872, tls: tls, token: token)
         }
@@ -87,14 +91,26 @@ final class Session {
             guard let p = try? await api.prefs.getPreference(r) else { return nil }
             return try? JSONDecoder().decode(T.self, from: Data(p.value.utf8))
         }
-        if let t = await read("ui.theme", as: ThemeSpec.self) { theme = t }
+        if let t = await read("ui.theme", as: ThemeSpec.self), t != theme {
+            theme = t
+            applyTheme()
+        }
         if let l = await read("ui.layout", as: Layout.self) { layout = l }
         if let m = await read("ui.mute", as: MuteRules.self) { mute = m }
     }
 
     func saveTheme(_ t: ThemeSpec) {
         theme = t
+        applyTheme()
         write("ui.theme", t)
+    }
+
+    /// Points the design tokens and the navigation bars at the theme, and keeps it on the device.
+    private func applyTheme() {
+        let p = theme.palette
+        LiveTheme.shared.palette = p
+        ThemeChrome.apply(p)
+        if let raw = try? JSONEncoder().encode(theme) { UserDefaults.standard.set(raw, forKey: "ui.theme") }
     }
 
     func saveMute(_ m: MuteRules) {
@@ -228,8 +244,8 @@ final class Session {
 
     var isHostedServer: Bool { host == Session.hostedHost && port == "443" && tls }
 
-    /// The accent: the 主题 page's choice, else the default blue.
-    var accent: Color { theme.accent.map { Color(hex: $0) } ?? Color(hex: 0x1F5BFF) }
+    /// The accent: the theme's, or the space's color in 工作 / 个人 when the theme lets colors follow the mode.
+    var accent: Color { mode.accent(palette) }
 
     func disconnect() {
         reminders.stopWatching()

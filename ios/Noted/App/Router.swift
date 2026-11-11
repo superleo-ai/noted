@@ -8,6 +8,8 @@
 //   Features/Notes/     NotesScreen (tab root)        routes: .note
 //   Features/Create/    CreateView                    routes: .create
 //   Features/Settings/  SettingsScreen                routes: .settings, .aiConnect, .pair, .theme, .export, .pro
+//   Features/Assist/    Suggestions, Ask, Review, Schedule  routes: .suggestions, .ask, .review, .schedule
+//   (Settings also owns .changes, .themeEditor; Today owns .modules)
 //   Features/SignIn/    SignInView (shown before connecting; not a route)
 //
 // Using it in a screen:
@@ -70,6 +72,14 @@ enum Route: Hashable {
     case theme
     case export
     case pro
+    case changes                              // AI 的改动记录
+    case modules                              // 页面模块 (Pro)
+    case themeEditor                          // 自定义主题 (Pro)
+    // Assist (Features/Assist/)
+    case suggestions                          // 建议
+    case ask(String)                          // 提问 / 记一笔: the text typed
+    case review                               // 每周回顾
+    case schedule([String])                   // 排进空档: task ids
 }
 
 /// What the 新建 page opens with.
@@ -188,6 +198,13 @@ struct RouteDestination: View {
         case .theme: ThemeScreen()
         case .export: ExportScreen()
         case .pro: ProScreen()
+        case .changes: ChangesScreen()
+        case .modules: ModulesScreen()
+        case .themeEditor: ThemeEditorScreen()
+        case .suggestions: SuggestionsView()
+        case .ask(let text): AskView(text: text)
+        case .review: ReviewView()
+        case .schedule(let ids): ScheduleView(taskIDs: ids)
         }
     }
 }

@@ -252,7 +252,11 @@ func (s *Suggestions) ProposeSchedule(ctx context.Context, req *pb.ProposeSchedu
 	if err != nil {
 		return nil, err
 	}
-	d, err := s.suggester(loc).Schedule(ctx, u, req.TaskIds, time.Duration(req.DurationMinutes)*time.Minute, int(req.Days), time.Now())
+	from := time.Now()
+	if req.From != nil && req.From.AsTime().After(from) {
+		from = req.From.AsTime()
+	}
+	d, err := s.suggester(loc).Schedule(ctx, u, req.TaskIds, time.Duration(req.DurationMinutes)*time.Minute, int(req.Days), from)
 	if err != nil {
 		if err == plan.ErrNoSlot {
 			return nil, status.Error(codes.FailedPrecondition, "there is not enough free time in that window")
