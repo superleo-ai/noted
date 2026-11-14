@@ -60,7 +60,7 @@ final class ModelTests: XCTestCase {
 
     func testLayoutDefaults() {
         let l = Layout()
-        XCTAssertEqual(l.modules(for: .all).filter(\.on).map(\.id), ["pinned", "items", "goals"])
+        XCTAssertEqual(l.modules(for: .all).filter(\.on).map(\.id), ["briefing", "items", "inProgress", "checkIns", "pinned"])
         XCTAssertEqual(Layout.standard.count, Layout.catalog.count)
     }
 
@@ -75,7 +75,7 @@ final class ModelTests: XCTestCase {
         var w = l.modules(for: .work)
         w.reverse()
         l.set(w, for: .work)
-        XCTAssertEqual(l.modules(for: .life).first?.id, "pinned")
+        XCTAssertEqual(l.modules(for: .life).first?.id, "briefing")
         XCTAssertEqual(l.modules(for: .work).first?.id, "heat")
     }
 

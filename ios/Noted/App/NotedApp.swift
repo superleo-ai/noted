@@ -6,6 +6,8 @@ struct NotedApp: App {
     @State private var toaster: Toaster
     @State private var data: AppData
     @State private var navigation = AppNavigation()
+    /// Which ways the app may turn: upright on a phone, any way on an opened iPhone Duo (WideLayout).
+    @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var orientations
 
     init() {
         let s = Session()
@@ -13,6 +15,7 @@ struct NotedApp: App {
         _session = State(initialValue: s)
         _toaster = State(initialValue: t)
         _data = State(initialValue: AppData(session: s, toaster: t))
+        ClassicChrome.install()
         WatchBridge.shared.start()
     }
 

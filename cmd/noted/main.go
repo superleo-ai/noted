@@ -29,6 +29,7 @@ import (
 	"github.com/liliang-cn/noted/internal/mcpserver"
 	"github.com/liliang-cn/noted/internal/plan"
 	"github.com/liliang-cn/noted/internal/reminder"
+	"github.com/liliang-cn/noted/internal/secretbox"
 	"github.com/liliang-cn/noted/internal/server"
 	"github.com/liliang-cn/noted/internal/store"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -148,7 +149,10 @@ func serve(argv []string) error {
 
 	deps := server.Deps{
 		Store: st, Auth: authn, Hub: reminder.NewHub(), Location: cfg.Location(), Locale: plan.Locale(cfg.Language),
-		Reflection: cfg.Server.Reflection,
+		Reflection: cfg.Server.Reflection, AIDailyLimit: cfg.AI.DailyLimit,
+	}
+	if deps.Secret, err = secretbox.Load(cfg.Storage.SecretKey, cfg.Storage.DataDir); err != nil {
+		return fmt.Errorf("secret key: %w", err)
 	}
 	if cfg.Auth.Apple.BundleID != "" {
 		deps.Apple = &apple.Verifier{BundleID: cfg.Auth.Apple.BundleID}
@@ -166,6 +170,7 @@ func serve(argv []string) error {
 		}
 		defer func() { _ = eng.Close() }()
 		deps.Engine = eng
+		deps.Account.Engine = eng // clears a deleted account's notes from the index
 		s := eng.Status()
 		slog.Info("AI enabled", "model", s.Model, "semantic_search", s.Semantic)
 		if s.Semantic {
@@ -187,6 +192,7 @@ func serve(argv []string) error {
 			return err
 		}
 		defer func() { _ = sy.Brain.(*cortexsync.Remote).Close() }()
+		deps.Account.Brain = sy // a deleted account's items leave the brain too
 		slog.Info("cortexdb sync on", "remote", cfg.Cortex.Remote, "users", len(cfg.Cortex.SyncUsers), "every", cfg.Cortex.Every(),
 			"token", cfg.Cortex.Token() != "")
 		go sy.Run(ctx)

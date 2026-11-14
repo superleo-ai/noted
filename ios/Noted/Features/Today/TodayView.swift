@@ -17,8 +17,8 @@ struct TodayView: View {
         .navigationTitle("今天")
         .largeSubtitle(range.subtitle(.now))
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }
-            ToolbarItem(placement: .topBarTrailing) { SettingsAvatarButton() }
+            ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }.plainBar()
+            ToolbarItem(placement: .topBarTrailing) { SettingsAvatarButton() }.plainBar()
         }
         .task(id: range) {
             await data.loadMonth(.now)
@@ -36,7 +36,7 @@ struct TodayView: View {
         }
         var a = assist
         a.review = s.features.weeklyReview
-        a.briefingOn = s.status.chat && s.features.dailyBriefing
+        a.briefingOn = s.status.chat && s.features.dailyBriefing && !session.aiLocked // AI is Noted Pro
         a.suggestionsOn = s.features.suggestions
         let space = session.mode.space
         let key = "\(session.mode.rawValue)-\(Fmt.ymd(.now))"
@@ -68,17 +68,31 @@ private struct TodayList: View {
         (session.pro.isPro ? session.layout.modules(for: session.mode) : Layout.standard).filter(\.on)
     }
 
+    /// Wide (an opened iPhone Duo with nothing open beside 今天): the briefing and the timeline on
+    /// the left, the other modules on the right.
+    @Environment(\.wideRoot) private var wide
+    private static let leftModules: Set<String> = ["briefing", "items"]
+
     var body: some View {
         ScrollViewReader { proxy in
-            List {
-                rangePicker
-                ForEach(modules, id: \.id) { m in module(m.id) }
-            }
-            .listStyle(.insetGrouped)
-            .environment(\.defaultMinListRowHeight, 10)
-            .refreshable {
-                await data.refreshAll()
-                await reloadAssist()
+            Group {
+                let side = wide ? modules.filter { !Self.leftModules.contains($0.id) } : []
+                if side.isEmpty {
+                    column {
+                        rangePicker
+                        ForEach(modules, id: \.id) { m in module(m.id) }
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        column {
+                            rangePicker
+                            ForEach(modules.filter { Self.leftModules.contains($0.id) }, id: \.id) { m in module(m.id) }
+                        }
+                        column {
+                            ForEach(side, id: \.id) { m in module(m.id) }
+                        }
+                    }
+                }
             }
             .onChange(of: router.scrollToTopRequest) {
                 withAnimation(.snappy) { proxy.scrollTo(TodayList.topID, anchor: .top) }
@@ -95,6 +109,16 @@ private struct TodayList: View {
             Text("“\(t.title)”")
         }
         .accessibilityIdentifier("today-list")
+    }
+
+    private func column<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        List { Group { content() }.classicRowInsets() }
+            .listStyle(.insetGrouped)
+            .environment(\.defaultMinListRowHeight, 10)
+            .refreshable {
+                await data.refreshAll()
+                await reloadAssist()
+            }
     }
 
     @ViewBuilder
@@ -117,7 +141,7 @@ private struct TodayList: View {
             Picker("范围", selection: $range) {
                 ForEach(TodayRange.allCases) { Text($0.label).tag($0) }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.segmented).classicSegmented()
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .accessibilityIdentifier("today-range")
@@ -441,7 +465,9 @@ private struct TodayList: View {
                 .listRowBackground(Color.clear)
             } header: {
                 SectionHeader("置顶项目", action: "全部") { router.push(.projects) }
+                    .padding(.horizontal, 16)
             }
+            .edgeToEdgeSection()
         }
     }
 }

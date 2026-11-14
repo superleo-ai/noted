@@ -14,13 +14,14 @@ struct ModulesScreen: View {
     private var modules: [ModuleState] { isPro ? layout.modules(for: mode) : Layout.standard }
 
     var body: some View {
-        List {
+        List { Group {
             if !isPro { proSection }
             modeSection
             moduleSection
             if isPro { resetSection }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .environment(\.editMode, editMode)
         .navigationTitle("页面模块")
         .navigationBarTitleDisplayMode(.inline)
@@ -67,11 +68,11 @@ struct ModulesScreen: View {
                 Picker("正在编辑", selection: $editing) {
                     ForEach(Mode.allCases) { m in Text(m.label).tag(m) }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented).classicSegmented()
                 .accessibilityIdentifier("modules-mode")
             }
         } header: {
-            Text("正在编辑 · 今天")
+            SectionLabel("正在编辑 · 今天")
         }
     }
 
@@ -80,7 +81,7 @@ struct ModulesScreen: View {
             ForEach(modules) { m in moduleRow(m) }
                 .onMove(perform: isPro ? { from, to in move(from, to) } : nil)
         } header: {
-            Text(isPro ? "拖动排序 · 关掉的不显示" : "默认布局")
+            SectionLabel(isPro ? "拖动排序 · 关掉的不显示" : "默认布局")
         }
     }
 

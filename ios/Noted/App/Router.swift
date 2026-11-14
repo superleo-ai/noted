@@ -9,7 +9,7 @@
 //   Features/Create/    CreateView                    routes: .create
 //   Features/Settings/  SettingsScreen                routes: .settings, .aiConnect, .pair, .theme, .export, .pro
 //   Features/Assist/    Suggestions, Ask, Review, Schedule  routes: .suggestions, .ask, .review, .schedule
-//   (Settings also owns .changes, .themeEditor; Today owns .modules)
+//   (Settings also owns .changes, .themeEditor, .deleteAccount; Today owns .modules)
 //   Features/SignIn/    SignInView (shown before connecting; not a route)
 //
 // Using it in a screen:
@@ -73,6 +73,9 @@ enum Route: Hashable {
     case export
     case pro
     case changes                              // AI 的改动记录
+    case aiConsent                            // AI 数据使用 (consent to the model provider)
+    case ownModel                             // 自带模型 Key (Pro)
+    case deleteAccount                        // 删除账号
     case modules                              // 页面模块 (Pro)
     case themeEditor                          // 自定义主题 (Pro)
     // Assist (Features/Assist/)
@@ -115,26 +118,45 @@ final class Router {
     let tab: AppTab
     var path: [Route] = []
     /// Bumped when the person taps the tab they are already on, at its root: scroll to the top.
-    private(set) var scrollToTopRequest = 0
+    var scrollToTopRequest: Int { detail?.scrollToTopRequest ?? scrollRequests }
+    private var scrollRequests = 0
     @ObservationIgnored weak var navigation: AppNavigation?
+    /// Wide screens (WideLayout): this router is the list column's, and what it opens goes to the
+    /// tab's own router, shown beside the list.
+    @ObservationIgnored private(set) weak var detail: Router?
 
     init(tab: AppTab) { self.tab = tab }
 
-    func push(_ r: Route) { path.append(r) }
+    convenience init(listFor detail: Router) {
+        self.init(tab: detail.tab)
+        self.detail = detail
+        navigation = detail.navigation
+    }
 
-    func pop() { if !path.isEmpty { path.removeLast() } }
+    func push(_ r: Route) {
+        guard let detail else { path.append(r); return }
+        // From the list column: a list page takes the column; anything else replaces what is beside it.
+        let lead = detail.path.first.flatMap { $0.isListPage ? $0 : nil }
+        detail.path = r.isListPage ? [r] : (lead.map { [$0] } ?? []) + [r]
+    }
 
-    func popToRoot() { path.removeAll() }
+    func pop() {
+        if let detail { detail.popToRoot(); return }
+        if !path.isEmpty { path.removeLast() }
+    }
+
+    func popToRoot() { if let detail { detail.popToRoot() } else { path.removeAll() } }
 
     /// Swaps the top page for another without stacking, e.g. 新建 turning into the note it created.
     func replaceTop(_ r: Route) {
+        if detail != nil { push(r); return }
         if path.isEmpty { path.append(r) } else { path[path.count - 1] = r }
     }
 
     /// Switches to another tab (its stack stays as it was).
     func select(_ tab: AppTab) { navigation?.select(tab) }
 
-    fileprivate func requestScrollToTop() { scrollToTopRequest += 1 }
+    fileprivate func requestScrollToTop() { scrollRequests += 1 }
 }
 
 /// The tab selection and the four routers. Screens normally use `Router`; this is for the shell.
@@ -199,6 +221,9 @@ struct RouteDestination: View {
         case .export: ExportScreen()
         case .pro: ProScreen()
         case .changes: ChangesScreen()
+        case .aiConsent: AIConsentScreen()
+        case .ownModel: OwnModelScreen()
+        case .deleteAccount: DeleteAccountScreen()
         case .modules: ModulesScreen()
         case .themeEditor: ThemeEditorScreen()
         case .suggestions: SuggestionsView()
@@ -215,9 +240,9 @@ struct RoutePlaceholder: View {
     var detail = ""
 
     var body: some View {
-        List {
+        List { Group {
             Section { EmptyState(text: detail.isEmpty ? title : "\(title) · \(detail)") }
-        }
+        }.classicRowInsets() }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }

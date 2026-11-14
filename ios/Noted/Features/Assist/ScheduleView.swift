@@ -28,9 +28,9 @@ struct ScheduleView: View {
             case .loading:
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).background(.groupedBackground)
             case .noSlot:
-                List { Section { EmptyState(text: from == nil ? "接下来两周没有 \(Fmt.duration(minutes: Int(minutes))) 的空档" : "再往后两周也没有空档") } }
+                List { Group { Section { EmptyState(text: from == nil ? "接下来两周没有 \(Fmt.duration(minutes: Int(minutes))) 的空档" : "再往后两周也没有空档") } }.classicRowInsets() }
             case .failed:
-                List { Section { EmptyState(text: "没有排出时间") } }
+                List { Group { Section { EmptyState(text: "没有排出时间") } }.classicRowInsets() }
             case .ready:
                 if let proposal { content(proposal) }
             }
@@ -38,7 +38,7 @@ struct ScheduleView: View {
         .navigationTitle("排进空档")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { lengthMenu }
+            ToolbarItem(placement: .topBarTrailing) { lengthMenu }.plainBar()
         }
         .task { await propose() }
         // Leaving without a choice drops the proposal, so it does not linger under 建议.
@@ -75,14 +75,14 @@ struct ScheduleView: View {
     private func content(_ p: Noted_V1_Proposal) -> some View {
         let slots = ScheduleSlot.parse(p)
         let days = Array(Set(slots.map { $0.start.startOfDay })).sorted()
-        return List {
+        return List { Group {
             ForEach(days, id: \.self) { day in
                 Section {
                     DayTimeline(slots: slots.filter { $0.start.isSameDay(as: day) },
                                 existing: existing(on: day))
                         .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 16))
                 } header: {
-                    Text(Fmt.mdw(day))
+                    SectionLabel(Fmt.mdw(day))
                 } footer: {
                     if day == days.first { Text("虚线是建议的时间，实线是已有安排") }
                 }
@@ -96,8 +96,9 @@ struct ScheduleView: View {
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.white)
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .listSectionSpacing(20)
         .task(id: days) { for d in days { await data.loadMonth(d) } }
     }

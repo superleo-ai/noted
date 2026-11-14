@@ -19,6 +19,8 @@ struct AppShell: View {
             }
         }
         .toastHost()
+        .aiConsentPrompt()
+        .refreshesOrientations()
         .overlay(alignment: .top) {
             if let r = session.reminders.banner {
                 ReminderBanner(reminder: r) { session.reminders.dismissBanner() }
@@ -89,19 +91,28 @@ struct AppShell: View {
     }
 }
 
-/// One tab: its stack, its root page with the tab bar under it, and every route.
+/// One tab: its stack, its root page with the tab bar under it, and every route. On a wide screen
+/// (an iPhone Duo opened) the list and the page opened from it side by side instead (SplitTab).
 private struct TabStack<Root: View>: View {
     @Bindable var router: Router
     @ViewBuilder var root: Root
+    @State private var width: CGFloat = 0
 
     var body: some View {
-        NavigationStack(path: $router.path) {
-            root
-                .themedPage()
-                .safeAreaInset(edge: .bottom, spacing: 0) { AppTabBar() }
-                .navigationDestination(for: Route.self) { RouteDestination(route: $0).themedPage() }
+        Group {
+            if WideLayout.isWide(width) {
+                SplitTab(router: router, width: width) { root }
+            } else {
+                NavigationStack(path: $router.path) {
+                    root
+                        .themedPage()
+                        .safeAreaInset(edge: .bottom, spacing: 0) { AppTabBar() }
+                        .navigationDestination(for: Route.self) { RouteDestination(route: $0).themedPage().classicBackButton($0) }
+                }
+                .environment(router)
+            }
         }
-        .environment(router)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 }
 

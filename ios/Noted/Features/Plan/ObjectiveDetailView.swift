@@ -25,7 +25,7 @@ struct ObjectiveDetailView: View {
             if let o = data.objective(objectiveID) {
                 content(o)
             } else if loaded {
-                List { Section { EmptyState(text: "目标已删除") } }
+                List { Group { Section { EmptyState(text: "目标已删除") } }.classicRowInsets() }
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -59,7 +59,7 @@ struct ObjectiveDetailView: View {
             sum + (data.checkIns[g.id] ?? []).filter { $0.time.date >= monthStart }.reduce(0.0) { $0 + $1.amount }
         }
         let readings = data.measurements[objectiveID] ?? []
-        return List {
+        return List { Group {
             Section {
                 PlanDetailHeader(title: o.title, subtitle: subtitle(o)) {
                     SpaceTag(space: o.space)
@@ -114,7 +114,7 @@ struct ObjectiveDetailView: View {
                 PlanAddRow(title: "添加里程碑", systemImage: "flag") { addMilestone = true }
                     .accessibilityIdentifier("objective-add-milestone")
             } header: {
-                Text(o.milestones.isEmpty ? "里程碑" : "里程碑 \(o.milestonesSummary)")
+                SectionLabel(o.milestones.isEmpty ? "里程碑" : "里程碑 \(o.milestonesSummary)")
             }
 
             Section {
@@ -126,13 +126,13 @@ struct ObjectiveDetailView: View {
                 }
                 PlanAddRow(title: "添加维度") { addDim = true }
                     .accessibilityIdentifier("objective-add-dimension")
-            } header: { Text("维度") }
+            } header: { SectionLabel("维度") }
 
             if o.hasMetric {
                 Section {
                     MetricCard(objective: o, readings: readings) { addReading = true }
                         .planCardRow(bottom: 0)
-                } header: { Text("指标") }
+                } header: { SectionLabel("指标") }
                 if !readings.isEmpty {
                     Section {
                         ForEach(Array(readings.enumerated().reversed()), id: \.element.id) { i, r in
@@ -143,7 +143,7 @@ struct ObjectiveDetailView: View {
                                     } label: { Label("删除", systemImage: "trash") }
                                 }
                         }
-                    } header: { Text("记录") }
+                    } header: { SectionLabel("记录") }
                 }
             } else {
                 Section {
@@ -151,8 +151,9 @@ struct ObjectiveDetailView: View {
                         .accessibilityIdentifier("objective-add-metric")
                 }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .refreshable {
             await data.refreshGoals()
             await load()
@@ -164,7 +165,7 @@ struct ObjectiveDetailView: View {
                 } label: { Image(systemName: "ellipsis.circle") }
                 .accessibilityLabel("更多")
                 .accessibilityIdentifier("objective-more")
-            }
+            }.plainBar()
         }
         .confirmationDialog("\(o.title) · 打卡", isPresented: $chooseDim, titleVisibility: .visible) {
             ForEach(dims, id: \.id) { g in
@@ -521,7 +522,7 @@ private struct AddDimensionSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            List { Group {
                 Section {
                     TextField("如 游泳", text: $title)
                         .font(.title3)
@@ -532,7 +533,7 @@ private struct AddDimensionSheet: View {
                     Picker("周期", selection: $period) {
                         ForEach(Noted_V1_GoalPeriod.planChoices, id: \.self) { Text($0.every).tag($0) }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).classicSegmented()
                     .planCardRow(bottom: 0)
                 }
                 Section {
@@ -542,11 +543,11 @@ private struct AddDimensionSheet: View {
                         CompactStepper(onMinus: { target = max(1, target - 1) }, onPlus: { target += 1 })
                     }
                 }
-            }
+            }.classicRowInsets() }
             .navigationTitle("添加维度")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button("添加") {
                         onAdd(title.trimmingCharacters(in: .whitespaces), period, target)
@@ -555,7 +556,7 @@ private struct AddDimensionSheet: View {
                     .fontWeight(.semibold)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                     .accessibilityIdentifier("dimension-add-save")
-                }
+                }.plainBar()
             }
         }
         .presentationDetents([.medium])
@@ -577,7 +578,7 @@ private struct AddMilestoneSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            List { Group {
                 Section {
                     TextField("如 通过 A2 考试", text: $title)
                         .font(.title3)
@@ -594,11 +595,11 @@ private struct AddMilestoneSheet: View {
                         .lineLimit(1...3)
                         .accessibilityLabel("完成标准")
                 }
-            }
+            }.classicRowInsets() }
             .navigationTitle("添加里程碑")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button("添加") {
                         // The end of the chosen day, so it is not overdue on the day itself.
@@ -609,7 +610,7 @@ private struct AddMilestoneSheet: View {
                     .fontWeight(.semibold)
                     .disabled(trimmed.isEmpty)
                     .accessibilityIdentifier("milestone-add-save")
-                }
+                }.plainBar()
             }
         }
         .presentationDetents([.medium])
@@ -629,18 +630,18 @@ private struct AddMetricSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            List { Group {
                 Section {
                     row("名称", "体重", $name).focused($focused)
                     row("单位", "kg", $unit)
                     row("当前", "80", $start, decimal: true)
                     row("目标", "75", $target, decimal: true)
                 }
-            }
+            }.classicRowInsets() }
             .navigationTitle("添加指标")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button("添加") {
                         guard let s = PlanFmt.parse(start) else { return }
@@ -649,7 +650,7 @@ private struct AddMetricSheet: View {
                     }
                     .fontWeight(.semibold)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || PlanFmt.parse(start) == nil)
-                }
+                }.plainBar()
             }
         }
         .presentationDetents([.medium])

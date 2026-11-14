@@ -34,7 +34,7 @@ struct EventDetailView: View {
             if let e = draft {
                 form(e)
             } else if missing {
-                List { Section { EmptyState(text: "日程不存在或已删除") } }
+                List { Group { Section { EmptyState(text: "日程不存在或已删除") } }.classicRowInsets() }
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -53,7 +53,7 @@ struct EventDetailView: View {
                     }
                     .accessibilityLabel("更多")
                     .accessibilityIdentifier("event-more")
-                }
+                }.plainBar()
             }
         }
         .confirmEventDelete($deleting) {
@@ -68,7 +68,7 @@ struct EventDetailView: View {
     // MARK: form
 
     private func form(_ e: Noted_V1_Event) -> some View {
-        List {
+        List { Group {
             Section { header(e) }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 4, trailing: 4))
@@ -127,8 +127,9 @@ struct EventDetailView: View {
                 .foregroundStyle(.danger)
                 .accessibilityIdentifier("event-delete")
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .scrollDismissesKeyboard(.interactively)
     }
 

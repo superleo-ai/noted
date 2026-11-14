@@ -157,7 +157,11 @@ final class AppData {
         do { projects = try await p } catch { failure = error }
         do { goals = try await g } catch { failure = error }
         do { objectives = try await o } catch { failure = error }
-        if let acc = await a { account = acc; session.pro.setServerGrant(acc.pro) }
+        if let acc = await a {
+            account = acc
+            let pro = session.pro
+            Task { await pro.syncIfNeeded(serverPro: acc.pro) }
+        }
         let months = loadedMonths.isEmpty ? [Date.now.startOfMonth] : Array(loadedMonths)
         loadedMonths = []
         for m in months { await loadMonth(m) }

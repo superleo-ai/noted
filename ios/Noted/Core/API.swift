@@ -86,7 +86,11 @@ func describe(_ error: Error) -> String {
     case .deadlineExceeded: return "服务器没有及时回应"
     case .failedPrecondition where e.message.contains("not enabled") && e.message.contains("Apple"): return "这台服务器没有开启 Apple ID 登录"
     case .failedPrecondition where e.message.contains("Apple ID"): return "这个 Apple ID 还没绑定账号。先用令牌连接一次,再到设置里绑定"
+    case .failedPrecondition where e.message.contains("Noted Pro"): return "AI 是 Noted Pro 的功能"
     case .failedPrecondition: return "这台服务器没有开启智能功能"
+    case .resourceExhausted: return e.message.isEmpty ? "今天的 AI 次数用完了，明天再来" : e.message
+    case .permissionDenied where e.message.contains("购买"): return e.message
+    case .invalidArgument where e.message.contains("purchase"): return "服务器没能确认这笔购买，稍后再试"
     case .permissionDenied: return "这部分内容没有允许智能功能读取"
     case .internalError where e.message.hasPrefix("AI request failed"): return "智能功能这次没有答上来,稍后再试"
     default: return e.message.isEmpty ? "出错了(\(e.code))" : e.message

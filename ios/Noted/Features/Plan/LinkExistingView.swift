@@ -36,12 +36,12 @@ struct LinkExistingView: View {
 
     var body: some View {
         let items = candidates
-        List {
+        List { Group {
             Section {
                 Picker("类型", selection: $kind) {
                     ForEach(Kind.allCases) { Text($0.label).tag($0) }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented).classicSegmented()
                 .planCardRow(bottom: 0)
                 .accessibilityIdentifier("link-kind")
             }
@@ -69,8 +69,9 @@ struct LinkExistingView: View {
                     .accessibilityAddTraits(on ? .isSelected : [])
                 }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索")
         .navigationTitle("关联已有")
         .navigationBarTitleDisplayMode(.inline)

@@ -22,24 +22,24 @@ struct AIConnectScreen: View {
     @State private var enteringCode = false
 
     var body: some View {
-        List {
+        List { Group {
             pairSection
             tokenSection
-            Section("Claude Code · 用令牌") {
+            Section {
                 CodeBlock(text: claudeTokenCommand(shownToken)) { copy(claudeTokenCommand(realToken)) }
-            }
-            Section("Codex · 写入配置") {
+            } header: { SectionLabel("Claude Code · 用令牌") }
+            Section {
                 CodeBlock(text: codexConfig) { copy(codexConfig) }
                 CodeBlock(text: codexExport(shownToken)) { copy(codexExport(realToken)) }
-            }
-            Section("已签发的令牌") {
+            } header: { SectionLabel("Codex · 写入配置") }
+            Section {
                 if data.tokens.isEmpty {
                     EmptyState(text: "没有令牌")
                 } else {
                     ForEach(data.tokens, id: \.id) { t in tokenRow(t) }
                 }
-            }
-        }
+            } header: { SectionLabel("已签发的令牌") }
+        }.classicRowInsets() }
         .navigationTitle("接入 AI 助手")
         .navigationBarTitleDisplayMode(.inline)
         .task { await data.loadTokens() }
@@ -72,7 +72,7 @@ struct AIConnectScreen: View {
     // MARK: pairing
 
     private var pairSection: some View {
-        Section("连接 Claude Code") {
+        Section {
             Step(number: 1, text: "在电脑终端运行")
             CodeBlock(text: claudePairCommand) { copy(claudePairCommand) }
             Step(number: 2, text: "在 Claude Code 里输入 /mcp，选 noted → 登录，浏览器会显示配对码")
@@ -89,7 +89,7 @@ struct AIConnectScreen: View {
                 .accessibilityIdentifier("pair-enter-code")
             }
             .padding(.vertical, 4)
-        }
+        } header: { SectionLabel("连接 Claude Code") }
     }
 
     // MARK: token
@@ -136,7 +136,7 @@ struct AIConnectScreen: View {
                 }
                 .padding(.vertical, 6)
             } header: {
-                Text("用令牌连接")
+                SectionLabel("用令牌连接")
             } footer: {
                 Text("\(fresh.info.label) · \(Fmt.md(fresh.info.createTime.date)) 创建")
             }
@@ -151,7 +151,7 @@ struct AIConnectScreen: View {
                 .listRowInsets(EdgeInsets())
                 .accessibilityIdentifier("token-generate")
             } header: {
-                Text("用令牌连接")
+                SectionLabel("用令牌连接")
             }
         }
     }

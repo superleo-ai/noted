@@ -62,6 +62,7 @@ struct SignInView: View {
                         .font(.footnote).foregroundStyle(.secondaryText)
                     }
                     if session.connecting { ProgressView().padding(.top, 4) }
+                    LegalAgreementLine(lead: "登录或注册").padding(.top, 6)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 28)
@@ -105,7 +106,7 @@ struct EmailSignInView: View {
                     Text("登录").tag(false)
                     Text("注册").tag(true)
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented).classicSegmented()
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
             }
@@ -141,6 +142,8 @@ struct EmailSignInView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
                 .accessibilityIdentifier("email-submit")
+            } footer: {
+                LegalAgreementLine(lead: signUp ? "注册" : "登录").padding(.top, 10)
             }
         }
         .navigationTitle(signUp ? "注册" : "邮箱登录")

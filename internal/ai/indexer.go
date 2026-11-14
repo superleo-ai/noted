@@ -67,6 +67,7 @@ func (ix *Indexer) drain(ctx context.Context) time.Duration {
 			return 0
 		}
 		access := map[string]store.AIAccess{}
+		consent := map[string]bool{}
 		for _, n := range notes {
 			acc, seen := access[n.UserID]
 			if !seen {
@@ -76,10 +77,15 @@ func (ix *Indexer) drain(ctx context.Context) time.Duration {
 					return 30 * time.Second
 				}
 				access[n.UserID] = acc
+				if consent[n.UserID], err = ix.Store.AIConsented(ctx, n.UserID); err != nil {
+					slog.Error("ai index: read consent", "err", err)
+					return 30 * time.Second
+				}
 			}
-			if !acc.Allows(n.Space) {
-				// The user keeps this space away from models: it is not embedded,
-				// and anything left over from before is removed.
+			if !acc.Allows(n.Space) || !consent[n.UserID] {
+				// The user keeps this space away from models, or has not agreed
+				// to AI processing in the app: it is not embedded, and anything
+				// left over from before is removed.
 				_ = ix.Engine.RemoveNote(ctx, n.UserID, n.ID)
 				if err := ix.Store.MarkNoteIndexed(ctx, n.ID, n.Updated); err != nil {
 					slog.Error("ai index: mark skipped", "note", n.ID, "err", err)

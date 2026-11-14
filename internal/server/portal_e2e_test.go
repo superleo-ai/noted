@@ -317,3 +317,45 @@ func TestPortalSignupClosedAndSecureCookie(t *testing.T) {
 		t.Fatalf("login behind TLS: %d %s", resp.StatusCode, resp.Header.Get("Set-Cookie"))
 	}
 }
+
+// The policy pages the App Store listing and the app link to: served on GET
+// and HEAD, in Chinese with an English section, styled by the site's own
+// stylesheet, naming the AI provider, and linked from the product page.
+func TestPortalPolicyPages(t *testing.T) {
+	_, b := startPortal(t, true)
+	for p, want := range map[string][]string{
+		"/privacy": {"隐私政策", "Privacy Policy", "OpenAI（GPT）", "OpenAI (GPT)", "TLS", "删除账号", "不投放广告", "自带模型 Key", "Your own model key"},
+		"/terms":   {"用户协议", "Terms of Use", "stdeula", "Noted Pro"},
+		"/support": {"支持", "Support", "/issues", "删除账号"},
+	} {
+		resp, body := get(t, b.base+p, nil)
+		page := string(body)
+		if resp.StatusCode != 200 || resp.Header.Get("Content-Type") != "text/html; charset=utf-8" {
+			t.Fatalf("%s: %d %q", p, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+		if !strings.Contains(resp.Header.Get("Content-Security-Policy"), "default-src 'self'") {
+			t.Errorf("%s: no CSP", p)
+		}
+		for _, w := range append(want, `lang="en"`, `href="`+portal.StylesheetURL()+`"`) {
+			if !strings.Contains(page, w) {
+				t.Errorf("%s lacks %q", p, w)
+			}
+		}
+		if strings.Contains(page, "{{") {
+			t.Errorf("%s has an unrendered template", p)
+		}
+		req, _ := http.NewRequest("HEAD", b.base+p, nil)
+		if r, err := http.DefaultClient.Do(req); err != nil || r.StatusCode != 200 {
+			t.Fatalf("HEAD %s: %v %v", p, err, r)
+		}
+		if r, err := http.Post(b.base+p, "text/plain", nil); err != nil || r.StatusCode != http.StatusMethodNotAllowed {
+			t.Fatalf("POST %s: %v %v", p, err, r)
+		}
+	}
+	_, home := get(t, b.base+"/", nil)
+	for _, l := range []string{`href="/privacy"`, `href="/terms"`, `href="/support"`} {
+		if !strings.Contains(string(home), l) {
+			t.Errorf("product page does not link %s", l)
+		}
+	}
+}

@@ -13,7 +13,7 @@ struct SuggestionsView: View {
     private enum LoadState { case loading, off, ready }
 
     var body: some View {
-        List {
+        List { Group {
             Section {
                 Text("\(proposals.count) 条 · 你不点，就不会执行")
                     .font(.subheadline).foregroundStyle(.secondaryText)
@@ -46,15 +46,15 @@ struct SuggestionsView: View {
                     .accessibilityIdentifier("suggestion-\(pr.id)")
                 }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
         .navigationTitle("建议")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("改动记录") { router.push(.changes) }
                     .accessibilityIdentifier("suggestions-changes")
-            }
-            ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }
+            }.plainBar()
+            ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }.plainBar()
         }
         .refreshable { await load() }
         .task(id: session.mode) { await load() }

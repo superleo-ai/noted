@@ -11,7 +11,7 @@ struct Layout: Codable, Equatable, Sendable {
     static let catalog: [(id: String, title: String, detail: String, on: Bool)] = [
         ("briefing", "今日简报", "一段自动生成的文字", true),
         ("items", "日程与待办", "按时间排列", true),
-        ("goals", "本周目标", "进度条 · 紧凑", true),
+        ("goals", "本周目标", "进度条 · 紧凑", false),
         ("inProgress", "进行中", "做过几次的待办", true),
         ("checkIns", "今天打卡", "目标和打卡按钮", true),
         ("pinned", "置顶项目", "横向卡片", true),

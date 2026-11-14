@@ -223,7 +223,7 @@ struct PlanNumberSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            List { Group {
                 Section {
                     TextField("0", text: $text)
                         .keyboardType(.decimalPad)
@@ -236,11 +236,11 @@ struct PlanNumberSheet: View {
                         Text(caption).frame(maxWidth: .infinity).multilineTextAlignment(.center)
                     }
                 }
-            }
+            }.classicRowInsets() }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button(doneTitle) {
                         guard let v = value else { return }
@@ -250,7 +250,7 @@ struct PlanNumberSheet: View {
                     .fontWeight(.semibold)
                     .disabled(value == nil)
                     .accessibilityIdentifier("number-sheet-save")
-                }
+                }.plainBar()
             }
         }
         .presentationDetents([.height(230)])

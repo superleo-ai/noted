@@ -12,6 +12,7 @@ import (
 	"github.com/liliang-cn/noted/internal/ai"
 	"github.com/liliang-cn/noted/internal/auth"
 	"github.com/liliang-cn/noted/internal/plan"
+	"github.com/liliang-cn/noted/internal/secretbox"
 	"github.com/liliang-cn/noted/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,7 +20,8 @@ import (
 )
 
 // AI exposes the optional assistant. With a nil Engine every method except
-// GetStatus answers FAILED_PRECONDITION, so clients can feature-detect.
+// GetStatus answers FAILED_PRECONDITION, so clients can feature-detect. The
+// model-backed methods are for Noted Pro users only, within a daily cap.
 type AI struct {
 	pb.UnimplementedAIServiceServer
 	Store    *store.Store
@@ -28,19 +30,67 @@ type AI struct {
 	Locale   plan.Locale
 	Sugg     *Suggestions // accepts what the assistant prepares
 	Changed  func()
+	// DailyLimit caps each user's language-model calls per UTC day; 0: no cap.
+	// Calls a Pro user runs on their own model are not counted.
+	DailyLimit int
+	// Secret seals users' own model API keys. Nil: they cannot set one.
+	Secret *secretbox.Box
+	// LocalModels lets a user's own model be on http://localhost or a private
+	// address. Tests only: on a real server it would let users probe it.
+	LocalModels bool
 }
 
 var errDisabled = status.Error(codes.FailedPrecondition, "AI is not enabled on this server")
 
-func (s *AI) need(ctx context.Context) (store.User, error) {
+// need admits a Pro caller to the model-backed methods. The context it
+// returns carries the caller's own model when they set one, so every model
+// call made with it goes there (and spend counts nothing).
+func (s *AI) need(ctx context.Context) (context.Context, store.User, error) {
 	u, ok := auth.User(ctx)
 	if !ok {
-		return store.User{}, status.Error(codes.Unauthenticated, "not authenticated")
+		return ctx, store.User{}, status.Error(codes.Unauthenticated, "not authenticated")
 	}
 	if s.Engine == nil || !s.Engine.Status().Chat {
-		return store.User{}, errDisabled
+		return ctx, store.User{}, errDisabled
 	}
-	return u, nil
+	pro, err := s.Store.UserPro(ctx, u.ID)
+	if err != nil {
+		return ctx, store.User{}, toStatus(err)
+	}
+	if !pro {
+		return ctx, store.User{}, errNotPro
+	}
+	if m, ok := s.ownModel(ctx, u.ID); ok {
+		ctx = ai.WithUserModel(ctx, m)
+	}
+	return ctx, u, nil
+}
+
+// The assistant runs on a paid model, so it is part of Noted Pro.
+var (
+	errNotPro    = status.Error(codes.FailedPrecondition, "AI 是 Noted Pro 的功能")
+	errOverLimit = status.Error(codes.ResourceExhausted, "今天的 AI 次数用完了，明天再来")
+)
+
+// spend counts one model call against the user's daily cap. Call the
+// returned refund when the model did not answer, so failures cost nothing.
+func (s *AI) spend(ctx context.Context, userID string) (refund func(), err error) {
+	if _, own := ai.UserModelFrom(ctx); own {
+		return func() {}, nil // their provider bills them; no cap
+	}
+	now := time.Now()
+	ok, err := s.Store.SpendAI(ctx, userID, now, s.DailyLimit)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	if !ok {
+		return nil, errOverLimit
+	}
+	return func() {
+		if err := s.Store.RefundAI(context.WithoutCancel(ctx), userID, now); err != nil {
+			slog.Warn("ai usage refund", "err", err)
+		}
+	}, nil
 }
 
 func (s *AI) GetStatus(context.Context, *pb.GetStatusRequest) (*pb.GetStatusResponse, error) {
@@ -90,7 +140,7 @@ func (s *AI) allowNote(ctx context.Context, userID string, n store.Note) error {
 }
 
 func (s *AI) Ask(ctx context.Context, req *pb.AskRequest) (*pb.AskResponse, error) {
-	u, err := s.need(ctx)
+	ctx, u, err := s.need(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +158,13 @@ func (s *AI) Ask(ctx context.Context, req *pb.AskRequest) (*pb.AskResponse, erro
 		sid = uuid.NewString()
 	}
 	prefix := fmt.Sprintf("e%d.", acc.Epoch)
+	refund, err := s.spend(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
 	r, err := s.Engine.Ask(ctx, u, prefix+sid, req.Message, space)
 	if err != nil {
+		refund()
 		return nil, s.aiError("ask", err)
 	}
 	r.SessionID = strings.TrimPrefix(r.SessionID, prefix)
@@ -162,7 +217,7 @@ func (s *AI) feature(ctx context.Context, userID string, on func(store.AIFeature
 }
 
 func (s *AI) SummarizeNote(ctx context.Context, req *pb.SummarizeNoteRequest) (*pb.SummarizeNoteResponse, error) {
-	u, err := s.need(ctx)
+	ctx, u, err := s.need(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -176,15 +231,20 @@ func (s *AI) SummarizeNote(ctx context.Context, req *pb.SummarizeNoteRequest) (*
 	if err := s.allowNote(ctx, u.ID, n); err != nil {
 		return nil, err
 	}
+	refund, err := s.spend(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
 	text, err := s.Engine.Summarize(ctx, n)
 	if err != nil {
+		refund()
 		return nil, s.aiError("summarize", err)
 	}
 	return &pb.SummarizeNoteResponse{Summary: text}, nil
 }
 
 func (s *AI) SuggestTags(ctx context.Context, req *pb.SuggestTagsRequest) (*pb.SuggestTagsResponse, error) {
-	u, err := s.need(ctx)
+	ctx, u, err := s.need(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +258,13 @@ func (s *AI) SuggestTags(ctx context.Context, req *pb.SuggestTagsRequest) (*pb.S
 	if err := s.allowNote(ctx, u.ID, n); err != nil {
 		return nil, err
 	}
+	refund, err := s.spend(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
 	tags, err := s.Engine.SuggestTags(ctx, n)
 	if err != nil {
+		refund()
 		return nil, s.aiError("suggest tags", err)
 	}
 	if req.Apply && len(tags) > 0 {
@@ -215,7 +280,7 @@ func (s *AI) SuggestTags(ctx context.Context, req *pb.SuggestTagsRequest) (*pb.S
 }
 
 func (s *AI) DailyBriefing(ctx context.Context, req *pb.DailyBriefingRequest) (*pb.DailyBriefingResponse, error) {
-	u, err := s.need(ctx)
+	ctx, u, err := s.need(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -236,8 +301,13 @@ func (s *AI) DailyBriefing(ctx context.Context, req *pb.DailyBriefingRequest) (*
 	if err != nil {
 		return nil, err
 	}
+	refund, err := s.spend(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
 	text, err := s.Engine.Briefing(ctx, u, day, loc, space)
 	if err != nil {
+		refund()
 		return nil, s.aiError("briefing", err)
 	}
 	return &pb.DailyBriefingResponse{Briefing: text}, nil
@@ -257,15 +327,20 @@ func (s *AI) aiError(op string, err error) error {
 }
 
 func (s *AI) PlanFromText(ctx context.Context, req *pb.PlanFromTextRequest) (*pb.Proposal, error) {
-	u, err := s.need(ctx)
+	ctx, u, err := s.need(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if strings.TrimSpace(req.Text) == "" {
 		return nil, status.Error(codes.InvalidArgument, "text is empty")
 	}
+	refund, err := s.spend(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
 	spec, err := s.Engine.Plan(ctx, u, req.Text, spaceIn(req.Space))
 	if err != nil {
+		refund()
 		return nil, s.aiError("plan", err)
 	}
 	p, _, err := saveDraft(ctx, s.Store, u.ID, plan.BuildPlan(spec, s.Locale), plan.SourceAI)
@@ -280,7 +355,7 @@ func (s *AI) PlanFromText(ctx context.Context, req *pb.PlanFromTextRequest) (*pb
 }
 
 func (s *AI) ExtractTasks(ctx context.Context, req *pb.ExtractTasksRequest) (*pb.Proposal, error) {
-	u, err := s.need(ctx)
+	ctx, u, err := s.need(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -294,8 +369,13 @@ func (s *AI) ExtractTasks(ctx context.Context, req *pb.ExtractTasksRequest) (*pb
 	if err := s.allowNote(ctx, u.ID, n); err != nil {
 		return nil, err
 	}
+	refund, err := s.spend(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
 	tasks, err := s.Engine.Extract(ctx, u, n)
 	if err != nil {
+		refund()
 		return nil, s.aiError("extract", err)
 	}
 	if len(tasks) == 0 {

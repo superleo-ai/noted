@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,12 @@ type Server struct {
 
 type Storage struct {
 	DataDir string `toml:"data_dir"`
+	// SecretKey encrypts secrets kept in the database (a Pro user's own model
+	// API key). Any string of 16+ characters; prefer $NOTED_SECRET_KEY to the
+	// file. Empty: a random key is generated once into data_dir/secret.key
+	// (0600). Changing or losing it makes stored keys unreadable: those users
+	// fall back to the server's model until they enter their key again.
+	SecretKey string `toml:"secret_key"`
 }
 
 type Auth struct {
@@ -74,6 +81,9 @@ type AI struct {
 	Enabled   bool     `toml:"enabled"`
 	LLM       Endpoint `toml:"llm"`
 	Embedding Endpoint `toml:"embedding"`
+	// DailyLimit caps each user's language-model calls per UTC day (Ask,
+	// plans, briefings, summaries, tags). Default 60; 0 means no cap.
+	DailyLimit int `toml:"daily_limit"`
 }
 
 // Endpoint is any OpenAI-compatible API.
@@ -122,6 +132,7 @@ func Default() Config {
 		Storage:  Storage{DataDir: "./data"},
 		TimeZone: "UTC",
 		Language: "zh",
+		AI:       AI{DailyLimit: 60},
 	}
 }
 
@@ -155,6 +166,7 @@ func applyEnv(c *Config) {
 	str(&c.Server.MCPListen, "NOTED_MCP_LISTEN")
 	str(&c.Server.PublicURL, "NOTED_PUBLIC_URL")
 	str(&c.Storage.DataDir, "NOTED_DATA_DIR")
+	str(&c.Storage.SecretKey, "NOTED_SECRET_KEY")
 	str(&c.TimeZone, "NOTED_TIME_ZONE")
 	str(&c.Language, "NOTED_LANGUAGE")
 	str(&c.Notify.WebhookURL, "NOTED_WEBHOOK_URL")
@@ -169,6 +181,11 @@ func applyEnv(c *Config) {
 	str(&c.AI.Embedding.BaseURL, "NOTED_AI_EMBEDDING_BASE_URL")
 	str(&c.AI.Embedding.APIKey, "NOTED_AI_EMBEDDING_API_KEY")
 	str(&c.AI.Embedding.Model, "NOTED_AI_EMBEDDING_MODEL")
+	if v := os.Getenv("NOTED_AI_DAILY_LIMIT"); v != "" {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			c.AI.DailyLimit = n
+		}
+	}
 	str(&c.Cortex.Remote, "NOTED_CORTEXDB_REMOTE")
 	str(&c.Cortex.Interval, "NOTED_CORTEXDB_INTERVAL")
 	boolean(&c.Cortex.TLS, "NOTED_CORTEXDB_TLS")
@@ -201,6 +218,12 @@ func (c Config) Validate() error {
 	}
 	if c.AI.Enabled && !c.AI.LLM.Configured() {
 		return fmt.Errorf("ai.enabled needs ai.llm.base_url and ai.llm.model (or turn AI off)")
+	}
+	if k := strings.TrimSpace(c.Storage.SecretKey); k != "" && len(k) < 16 {
+		return fmt.Errorf("storage.secret_key: must be at least 16 characters")
+	}
+	if c.AI.DailyLimit < 0 {
+		return fmt.Errorf("ai.daily_limit %d: must be 0 (no cap) or more", c.AI.DailyLimit)
 	}
 	if e := c.AI.Embedding; (e.BaseURL != "") != (e.Model != "") {
 		return fmt.Errorf("ai.embedding needs both base_url and model")

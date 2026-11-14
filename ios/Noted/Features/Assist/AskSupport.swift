@@ -73,6 +73,8 @@ enum AskLabels {
     /// What a tool name read: list_events → 日程, search_notes → 笔记.
     static func tool(_ name: String) -> String? {
         let n = name.lowercased()
+        // The agent's own end-of-turn signals, not reads.
+        if n == "task_complete" || n == "task_blocked" { return nil }
         let map: [(String, String)] = [
             ("event", "日程"), ("alarm", "日程"), ("task", "待办"), ("note", "笔记"), ("project", "项目"),
             ("objective", "目标"), ("goal", "目标"), ("check_in", "打卡"), ("time", "时间记录"),

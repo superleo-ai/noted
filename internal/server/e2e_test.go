@@ -61,11 +61,17 @@ func start(t *testing.T, engine ai.Engine, authDisabled bool) *env {
 }
 
 // restart serves the same store and tokens again, now with an AI engine.
+// AI is for Noted Pro users, so alice and bob are made Pro.
 func restart(t *testing.T, old *env, engine ai.Engine) *env {
 	t.Helper()
 	a, err := auth.New(context.Background(), old.st, false)
 	if err != nil {
 		t.Fatal(err)
+	}
+	for _, name := range []string{"alice", "bob"} {
+		if err := old.st.SetUserPro(context.Background(), name, true); err != nil {
+			t.Fatal(err)
+		}
 	}
 	e := &env{st: old.st, hub: old.hub, alice: old.alice, bob: old.bob}
 	g := server.New(server.Deps{Store: old.st, Auth: a, Hub: old.hub, Engine: engine, Location: time.UTC})

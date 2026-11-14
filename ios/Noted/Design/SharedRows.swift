@@ -27,13 +27,14 @@ struct TodoTimelineRow: View {
                         .font(.subheadline.weight(.medium)).monospacedDigit()
                         .foregroundStyle(overdue ? AnyShapeStyle(Color.danger) : AnyShapeStyle(.primary))
                         .lineLimit(1).fixedSize()
-                        .frame(width: 44, alignment: .leading)
+                        .frame(width: 40, alignment: .leading)
                         .frame(maxHeight: .infinity, alignment: .top)
                         .padding(.top, 2)
                 }
                 CheckButton(isOn: task.completed) { toggle() }
                     .buttonStyle(.borderless)
                     .padding(.horizontal, -10).padding(.vertical, -10)
+                    .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + 10 }
                 VStack(alignment: .leading, spacing: 1) {
                     title
                     if let sub = subtitle(overdue: overdue) { sub.font(.footnote).foregroundStyle(.secondaryText).lineLimit(1) }
@@ -41,11 +42,12 @@ struct TodoTimelineRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 SpaceDot(space: task.space)
             }
-            .padding(.vertical, 6)
-            .frame(minHeight: 46)
+            .padding(.vertical, 9)
+            .frame(minHeight: showsTime ? 58 : 50)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         .accessibilityIdentifier("todo-\(task.id)")
     }
 
@@ -103,10 +105,11 @@ struct EventTimelineRow: View {
                 }
                 .monospacedDigit()
                 .lineLimit(1).fixedSize()
-                .frame(width: 44, alignment: .leading)
+                .frame(width: 40, alignment: .leading)
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.top, 2)
                 RoundedRectangle(cornerRadius: 2).fill(e.space.tint).frame(width: 4).padding(.vertical, 1)
+                    .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
                 VStack(alignment: .leading, spacing: 1) {
                     Text(e.title).lineLimit(1)
                         .strikethrough(past, color: .tertiaryText)
@@ -114,12 +117,13 @@ struct EventTimelineRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.vertical, 6)
-            .frame(minHeight: 46)
+            .padding(.vertical, 9)
+            .frame(minHeight: 58)
             .opacity(past ? 0.45 : 1)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         .accessibilityIdentifier("event-\(e.id)")
     }
 
@@ -274,7 +278,7 @@ struct GoalRow: View {
             }
             .buttonStyle(.borderless)
         }
-        .padding(.vertical, 3)
+        .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
         .sheet(isPresented: $askMinutes) {
             MinutesCheckInSheet(goal: goal) { minutes, count in Task { await checkIn(amount: Double(minutes), count: count) } }
         }
@@ -341,7 +345,7 @@ struct ObjectiveRow: View {
                     .buttonStyle(.borderless)
             }
         }
-        .padding(.vertical, 3)
+        .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
         .task(id: objective.id) {
             if objective.hasMetric && data.measurements[objective.id] == nil { await data.loadMeasurements(objective.id) }
         }
@@ -395,7 +399,7 @@ struct MinutesCheckInSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            List { Group {
                 Section {
                     HStack(spacing: 8) {
                         ForEach([15, 30, 45, 60], id: \.self) { m in
@@ -411,19 +415,19 @@ struct MinutesCheckInSheet: View {
                         Toggle("\(goal.counterUnit.isEmpty ? "累计" : goal.counterUnit) +1", isOn: $countsOne).tint(.switchOn)
                     }
                 }
-            }
+            }.classicRowInsets() }
             .listSectionSpacing(.compact)
             .navigationTitle("\(goal.title) · 记录时长")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button("记录") {
                         onSave(minutes, goal.hasCounter && countsOne ? 1 : 0)
                         dismiss()
                     }
                     .fontWeight(.semibold)
-                }
+                }.plainBar()
             }
         }
         .presentationDetents([.height(goal.hasCounter ? 290 : 230)])

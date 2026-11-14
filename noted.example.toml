@@ -28,6 +28,10 @@ reflection = true            # gRPC reflection, so grpcurl/Postman can discover 
 
 [storage]
 data_dir = "./data"          # noted.db lives here; back it up by copying the directory
+# Encrypts secrets stored in the database (a Pro user's own model API key).
+# Prefer $NOTED_SECRET_KEY. Empty: generated once into data_dir/secret.key (0600);
+# keep that file with your backups, or those users must enter their key again.
+# secret_key = ""
 
 [auth]
 # Create users with `noted user add <name>`; clients send
@@ -58,6 +62,8 @@ signup = false
 # ---------------------------------------------------------------------------
 [ai]
 enabled = false
+# AI is for Noted Pro users (bought in the App, or `noted user pro <name> on`).
+# daily_limit = 60             # model calls per user per UTC day; 0 = no cap
 
 [ai.llm]                      # assistant (Ask), summaries, tags, daily briefing
 # base_url = "https://api.openai.com/v1"

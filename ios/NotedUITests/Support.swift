@@ -196,8 +196,10 @@ class NotedUITestCase: XCTestCase {
         let w = app.windows.firstMatch
         let h = w.frame.height
         let low = (visibleBottom - 20) / h, high = 220 / h
-        let from = w.coordinate(withNormalizedOffset: CGVector(dx: 0.06, dy: up ? low : high))
-        let to = w.coordinate(withNormalizedOffset: CGVector(dx: 0.06, dy: up ? high : low))
+        // Sideways the left edge is the notch's safe area, outside every list: start further in.
+        let x: CGFloat = w.frame.width > w.frame.height ? 0.15 : 0.06
+        let from = w.coordinate(withNormalizedOffset: CGVector(dx: x, dy: up ? low : high))
+        let to = w.coordinate(withNormalizedOffset: CGVector(dx: x, dy: up ? high : low))
         from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.15)
     }
 

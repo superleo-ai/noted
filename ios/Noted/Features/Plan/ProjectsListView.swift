@@ -13,13 +13,13 @@ struct ProjectsListView: View {
 
     var body: some View {
         let list = tab == .active ? data.activeProjects : data.archivedProjects
-        List {
+        List { Group {
             Section {
                 Picker("项目", selection: $tab) {
                     Text("进行中").tag(Shelf.active)
                     Text("已归档").tag(Shelf.archived)
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented).classicSegmented()
                 .planCardRow(bottom: 4)
                 .accessibilityIdentifier("projects-tab")
             }
@@ -46,7 +46,7 @@ struct ProjectsListView: View {
                         }
                 }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
         .refreshable { await data.refreshProjects() }
         .navigationTitle("项目")
@@ -57,7 +57,7 @@ struct ProjectsListView: View {
                 }
                 .accessibilityLabel("新建项目")
                 .accessibilityIdentifier("projects-new")
-            }
+            }.plainBar()
         }
         .confirmationDialog("删除“\(deleting?.title ?? "")”？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                             titleVisibility: .visible, presenting: deleting) { p in

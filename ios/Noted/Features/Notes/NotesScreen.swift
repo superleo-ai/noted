@@ -20,14 +20,14 @@ struct NotesScreen: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            List {
+            List { Group {
                 tagChips.id("top")
                 if searchingByMeaning {
                     meaningResults
                 } else {
                     groupedNotes
                 }
-            }
+            }.classicRowInsets() }
             .listStyle(.insetGrouped)
             .onChange(of: router.scrollToTopRequest) { _, _ in
                 withAnimation { proxy.scrollTo("top", anchor: .top) }
@@ -40,12 +40,12 @@ struct NotesScreen: View {
         .task(id: searchingByMeaning ? "\(trimmed)|\(session.mode.rawValue)" : "") { await searchByMeaning() }
         .refreshable { await data.refreshNotes() }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }
+            ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }.plainBar()
             ToolbarItem(placement: .topBarTrailing) {
                 Button { router.push(.note("")) } label: { Image(systemName: "square.and.pencil") }
                     .accessibilityLabel("新建笔记")
                     .accessibilityIdentifier("notes-new")
-            }
+            }.plainBar()
         }
         .confirmationDialog("删除笔记？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                             titleVisibility: .visible, presenting: deleting) { n in
@@ -81,6 +81,8 @@ struct NotesScreen: View {
                 .listRowBackground(Color.clear)
             }
             .listSectionSpacing(4)
+            .listSectionSeparator(.hidden)
+            .edgeToEdgeSection()
         }
     }
 
@@ -118,7 +120,7 @@ struct NotesScreen: View {
                 Section {
                     rows(pinned)
                 } header: {
-                    Label("置顶", systemImage: "pin").labelStyle(.titleAndIcon)
+                    SectionLabel("置顶", systemImage: "pin")
                 }
             }
             let groups: [(String, [Noted_V1_Note])] = [
@@ -128,7 +130,7 @@ struct NotesScreen: View {
             ]
             ForEach(groups, id: \.0) { title, xs in
                 if !xs.isEmpty {
-                    Section(title) { rows(xs) }
+                    Section { rows(xs) } header: { SectionLabel(title) }
                 }
             }
         }
@@ -149,7 +151,7 @@ struct NotesScreen: View {
                 ProgressView().frame(maxWidth: .infinity).padding(.vertical, 22)
             }
         } header: {
-            Text("按含义")
+            SectionLabel("按含义")
         }
     }
 
@@ -172,6 +174,7 @@ struct NotesScreen: View {
                 NoteListRow(note: n, projectTitle: data.projectTitle(n.projectID))
             }
             .buttonStyle(.plain)
+            .listRowInsets(EdgeInsets(top: 11, leading: 16, bottom: 12, trailing: 16))
             .accessibilityIdentifier("note-row")
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 Button { deleting = n } label: { Label("删除", systemImage: "trash") }
@@ -232,7 +235,7 @@ struct NoteListRow: View {
     var projectTitle: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(NoteText.title(note))
                 .font(.headline)
                 .foregroundStyle(note.title.isEmpty ? AnyShapeStyle(.secondaryText) : AnyShapeStyle(.primary))
@@ -242,9 +245,9 @@ struct NoteListRow: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondaryText)
                 .lineLimit(2)
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(Fmt.stamp(note.updateTime.date)).monospacedDigit().foregroundStyle(.secondaryText)
-                SpaceDot(space: note.space == .work ? .work : .life, size: 6)
+                SpaceDot(space: note.space == .work ? .work : .life, size: 8)
                 if let projectTitle {
                     HStack(spacing: 3) {
                         Image(systemName: "folder").font(.system(size: 11))
@@ -256,10 +259,9 @@ struct NoteListRow: View {
                     Text("#\(t)").foregroundStyle(.tint).lineLimit(1)
                 }
             }
-            .font(.caption)
-            .padding(.top, 2)
+            .font(.footnote)
+            .padding(.top, 4)
         }
-        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)

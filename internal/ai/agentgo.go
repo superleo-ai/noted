@@ -14,7 +14,6 @@ import (
 	"github.com/liliang-cn/agent-go/v3/pkg/agent"
 	agentconfig "github.com/liliang-cn/agent-go/v3/pkg/config"
 	"github.com/liliang-cn/agent-go/v3/pkg/domain"
-	"github.com/liliang-cn/agent-go/v3/pkg/pool"
 	"github.com/liliang-cn/agent-go/v3/pkg/providers"
 	"github.com/liliang-cn/cortexdb/v2/pkg/cortexdb"
 	"github.com/liliang-cn/noted/internal/config"
@@ -30,10 +29,13 @@ type Agent struct {
 	model  string
 	locale plan.Locale // wording of the labels on what the assistant stages
 
-	llm domain.Generator
-	svc *agent.Service // the assistant, with note/event/task tools
+	llm    domain.Generator // the router: the server's model, or the request's user model
+	router *router
+	svc    *agent.Service // the assistant, with note/event/task tools
 
 	index *cortexdb.DB // nil without an embedding model
+
+	sessionsDB string // agentgo.db, where the assistant keeps its conversations
 }
 
 type Options struct {
@@ -72,24 +74,19 @@ func New(ctx context.Context, o Options) (*Agent, error) {
 	}
 	a := &Agent{store: o.Store, loc: o.Location, model: o.LLM.Model, locale: o.Locale}
 
-	brain, err := pool.NewPool(pool.PoolConfig{
-		Enabled:  true,
-		Strategy: pool.StrategyRoundRobin,
-		Providers: []pool.Provider{{
-			Name: "llm", BaseURL: o.LLM.BaseURL, Key: o.LLM.APIKey,
-			ModelName: o.LLM.Model, MaxConcurrency: 4, Capability: 4,
-		}},
-	})
+	def, err := newPool("llm", o.LLM)
 	if err != nil {
 		return nil, fmt.Errorf("llm: %w", err)
 	}
-	a.llm = brain
+	brain := newRouter(def)
+	a.llm, a.router = brain, brain
 
 	cfg := &agentconfig.Config{Home: o.Dir}
 	cfg.ApplyHomeLayout()
 	if err := os.MkdirAll(cfg.DataDir(), 0o755); err != nil {
 		return nil, err
 	}
+	a.sessionsDB = cfg.AgentDBPath()
 	svc, err := agent.New("noted").
 		WithPrompt(prompt).
 		WithConfig(cfg).

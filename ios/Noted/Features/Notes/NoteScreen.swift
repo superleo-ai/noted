@@ -40,7 +40,7 @@ struct NoteScreen: View {
     var body: some View {
         Group {
             if missing {
-                List { Section { EmptyState(text: "笔记已删除", systemImage: "note.text") } }
+                List { Group { Section { EmptyState(text: "笔记已删除", systemImage: "note.text") } }.classicRowInsets() }
             } else if !loaded {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -55,7 +55,7 @@ struct NoteScreen: View {
                 Text(statusText).font(.footnote).foregroundStyle(status == .local ? AnyShapeStyle(.warning) : AnyShapeStyle(.secondaryText))
                     .monospacedDigit()
                     .accessibilityIdentifier("note-status")
-            }
+            }.plainBar()
             if loaded && !missing {
                 ToolbarItem(placement: .topBarTrailing) {
                     if editing {
@@ -65,7 +65,7 @@ struct NoteScreen: View {
                     } else {
                         moreMenu
                     }
-                }
+                }.plainBar()
             }
         }
         .task { await load() }
@@ -197,13 +197,13 @@ struct NoteScreen: View {
             ForEach([Noted_V1_Space.life, .work], id: \.self) { sp in
                 let ps = open.filter { ($0.space == .work ? Noted_V1_Space.work : .life) == sp }
                 if !ps.isEmpty {
-                    Section(sp.label) {
+                    Section {
                         ForEach(ps, id: \.id) { p in
                             Button { setProject(p) } label: {
                                 if p.id == note.projectID { Label(p.title, systemImage: "checkmark") } else { Text(p.title) }
                             }
                         }
-                    }
+                    } header: { Text(sp.label) }
                 }
             }
         } label: {
@@ -269,7 +269,11 @@ struct NoteScreen: View {
                 Label("分享", systemImage: "square.and.arrow.up")
             }
             if session.aiNoteTools && !note.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Button { Task { await runExtract() } } label: { Label("提取待办", systemImage: "checklist") }
+                if !session.aiLocked {
+                    Button { Task { await runExtract() } } label: { Label("提取待办", systemImage: "checklist") }
+                } else {
+                    Button { router.push(.pro) } label: { Label("提取待办（Pro）", systemImage: "lock") }
+                }
             }
             Divider()
             Button(role: .destructive) { confirmDelete = true } label: { Label("删除笔记", systemImage: "trash") }
@@ -617,7 +621,7 @@ struct NoteScreen: View {
     /// The saved version to ask about: none while typing, for a new note, or for a short one.
     /// It changes once a save with new text lands, not on every keystroke.
     private var assistKey: Int? {
-        guard session.aiNoteTools, !editing, let s = saved, !s.id.isEmpty, NoteAssist.worthAsking(s) else { return nil }
+        guard session.aiNoteTools, !session.aiLocked, !editing, let s = saved, !s.id.isEmpty, NoteAssist.worthAsking(s) else { return nil }
         return NoteAssist.key(s)
     }
 

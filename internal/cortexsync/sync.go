@@ -268,3 +268,38 @@ func (s *Syncer) runUser(ctx context.Context, name string, budget time.Duration)
 		log.Warn("cortexdb sync item failed", "user", name, "item", f.Key, "op", f.Op, "code", errCode(f.Err))
 	}
 }
+
+// Forget removes everything the sync sent to the brain for a user who is
+// deleting their account: every item in their ledger. Call it before the
+// user's rows are deleted, since the ledger is one of them. It does nothing
+// for a user who never opted in. Items that fail stay in the brain; the
+// returned error says how many.
+func (s *Syncer) Forget(ctx context.Context, userID, name string) error {
+	if !s.OptedIn(name) || s.Brain == nil {
+		return nil
+	}
+	ledger, err := s.Store.CortexLedger(ctx, userID, s.Target)
+	if err != nil {
+		return err
+	}
+	keys := make([]string, 0, len(ledger))
+	for k := range ledger {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	removed, failed := 0, 0
+	for _, k := range keys {
+		if err := s.remove(ctx, name, k); err != nil {
+			failed++
+			if unreachable(err) || ctx.Err() != nil {
+				return fmt.Errorf("cortexdb unreachable after removing %d of %d items: %w", removed, len(keys), err)
+			}
+			continue
+		}
+		removed++
+	}
+	if failed > 0 {
+		return fmt.Errorf("%d of %d items could not be removed from cortexdb", failed, len(keys))
+	}
+	return nil
+}

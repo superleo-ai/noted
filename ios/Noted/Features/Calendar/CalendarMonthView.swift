@@ -97,7 +97,7 @@ struct MonthDayList: View {
 
     var body: some View {
         let entries = entries
-        List {
+        List { Group {
             Section {
                 if entries.isEmpty {
                     EmptyState(text: "没有安排")
@@ -127,7 +127,7 @@ struct MonthDayList: View {
                     .foregroundStyle(.secondaryText)
                     .textCase(nil)
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
         .listSectionSpacing(.compact)
         .contentMargins(.top, 8, for: .scrollContent)

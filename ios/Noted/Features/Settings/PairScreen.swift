@@ -47,7 +47,7 @@ struct PairScreen: View {
     // MARK: states
 
     private func request(_ p: Noted_V1_Pairing) -> some View {
-        List {
+        List { Group {
             Section {
                 VStack(spacing: 6) {
                     IconTile(systemName: "terminal", tile: .graphite, size: 60)
@@ -82,7 +82,7 @@ struct PairScreen: View {
             } footer: {
                 Text("允许后它可以读写你的数据，可随时在“已签发的令牌”里吊销")
             }
-        }
+        }.classicRowInsets() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             BottomBar {
                 Button("拒绝") { deny() }

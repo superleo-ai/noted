@@ -22,10 +22,14 @@ struct AskView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            List {
+            List { Group {
+                if session.aiLocked {
+                    Section { ProLockedRow(title: "提问与拆成项目", detail: "AI 是 Noted Pro 的功能") }
+                }
                 ForEach(turns) { turn in turnSections(turn) }
-            }
+            }.classicRowInsets() }
             .listStyle(.insetGrouped)
+            .contentMargins(.top, 0, for: .scrollContent)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: turns.map(\.id)) { _, ids in
                 guard let last = ids.last else { return }
@@ -41,7 +45,7 @@ struct AskView: View {
             }
         }
         .task {
-            guard !started else { return }
+            guard !started, !session.aiLocked else { return }
             started = true
             send(text)
         }
@@ -153,11 +157,11 @@ struct AskView: View {
     @ViewBuilder private func proposalSections(_ p: Noted_V1_Proposal, turn: UUID, plan: Bool) -> some View {
         let fields = AskFields.rows(p, data: data)
         if !fields.isEmpty {
-            Section("识别结果") {
+            Section {
                 ForEach(fields, id: \.0) { label, value in
                     LabeledContent(label, value: value)
                 }
-            }
+            } header: { SectionLabel("识别结果") }
         }
         Section {
             ProposalCard(proposal: p, title: title(p, single: !fields.isEmpty),

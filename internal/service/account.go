@@ -5,13 +5,16 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
 	pb "github.com/liliang-cn/noted/gen/noted/v1"
+	"github.com/liliang-cn/noted/internal/ai"
 	"github.com/liliang-cn/noted/internal/apple"
 	"github.com/liliang-cn/noted/internal/auth"
 	"github.com/liliang-cn/noted/internal/store"
+	"github.com/liliang-cn/noted/internal/storekit"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -29,6 +32,78 @@ type Account struct {
 	Guard       *Guard // sign-in lockout; share one between the gRPC API and the web portal
 	// PasswordCost is the bcrypt cost of new password hashes; 0 means 12.
 	PasswordCost int
+	Purchases    *storekit.Verifier // VerifyPurchase; nil: Apple roots, noted's bundle and product
+	// Engine, when set, has its semantic index cleared of a deleted user's
+	// notes, and its assistant conversations with them dropped when it can
+	// (ForgetUser, as ai.Agent has).
+	Engine ai.Engine
+	// Brain, when set, takes what the CortexDB sync sent for a deleted user
+	// out of the brain (cortexsync.Syncer).
+	Brain Forgetter
+}
+
+// Forgetter removes what was copied out of the database for a user.
+type Forgetter interface {
+	Forget(ctx context.Context, userID, name string) error
+}
+
+// DeleteConfirm is the word DeleteAccount must be sent, so a stray call
+// cannot delete an account.
+const DeleteConfirm = "DELETE"
+
+// DeleteAccount deletes the caller's user and everything they own. The
+// token making the call, and every other, stops working.
+//
+// Apple: Sign in with Apple is only verified here (identity tokens); the
+// server keeps no Apple refresh token and has no client secret, so there is
+// nothing to send to appleid.apple.com/auth/revoke. The link is dropped with
+// the user, and the person can remove the app under their Apple ID's
+// "Sign in with Apple" settings.
+func (s *Account) DeleteAccount(ctx context.Context, req *pb.DeleteAccountRequest) (*emptypb.Empty, error) {
+	u, ok := auth.User(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "not authenticated")
+	}
+	if req.GetConfirm() != DeleteConfirm {
+		return nil, status.Errorf(codes.InvalidArgument, "confirm must be %q", DeleteConfirm)
+	}
+	if auth.TokenID(ctx) == "" {
+		// Auth is off: every caller is the one built-in user, and deleting it
+		// would pull the floor out from under the server.
+		return nil, status.Error(codes.FailedPrecondition, "accounts cannot be deleted while auth is disabled")
+	}
+	// The rest of the work must not stop halfway because the caller hung up.
+	bg := context.WithoutCancel(ctx)
+	if s.Brain != nil {
+		fctx, cancel := context.WithTimeout(bg, 2*time.Minute)
+		if err := s.Brain.Forget(fctx, u.ID, u.Name); err != nil {
+			slog.Warn("delete account: cortexdb items left behind", "user", u.ID, "err", err)
+		}
+		cancel()
+	}
+	gone, err := s.Store.DeleteUser(bg, u.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, status.Error(codes.Unauthenticated, "not authenticated")
+	}
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	if s.Engine != nil {
+		for _, id := range gone.NoteIDs {
+			if err := s.Engine.RemoveNote(bg, u.ID, id); err != nil {
+				slog.Warn("delete account: note left in the semantic index", "user", u.ID, "note", id, "err", err)
+			}
+		}
+		if f, ok := s.Engine.(interface {
+			ForgetUser(ctx context.Context, userID string) error
+		}); ok {
+			if err := f.ForgetUser(bg, u.ID); err != nil {
+				slog.Warn("delete account: assistant conversations left behind", "user", u.ID, "err", err)
+			}
+		}
+	}
+	slog.Info("account deleted", "user", u.ID, "notes", len(gone.NoteIDs), "apple_linked", gone.AppleSub != "")
+	return &emptypb.Empty{}, nil
 }
 
 func (s *Account) verify(ctx context.Context, token, nonce string) (apple.Identity, error) {

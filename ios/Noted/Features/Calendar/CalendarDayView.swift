@@ -201,13 +201,15 @@ struct DayGridView: View {
     }
 
     private func scrollToFocus(_ items: [TimedItem], animated: Bool) {
+        // As in the design, a day opens on 07:00 (earlier when something starts before then);
+        // 今天 (a scroll request) brings the now line into view.
         let minute: Int
-        if day.isSameDay(as: now) {
+        if animated && day.isSameDay(as: now) {
             minute = max(0, now.minuteOfDay - 90)
-        } else if let first = items.map(\.start).min() {
+        } else if let first = items.map(\.start).min(), first < 7 * 60 {
             minute = max(0, first - 30)
         } else {
-            minute = 7 * 60 + 30
+            minute = 7 * 60 - 10
         }
         let y = Self.headerHeight + Self.top + CGFloat(minute) / 60 * Self.hourHeight
         if animated {

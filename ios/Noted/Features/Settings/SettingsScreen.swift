@@ -15,6 +15,7 @@ struct SettingsScreen: View {
 
     var body: some View {
         List {
+          Group {
             accountSection
             Section {
                 NavigationLink(value: Route.aiConnect) {
@@ -44,11 +45,12 @@ struct SettingsScreen: View {
                 }
                 .accessibilityIdentifier("settings-pro")
             }
-            Section("服务器") {
+            AboutSection()
+            Section {
                 FieldLabel("地址", icon: "server.rack", tile: .graphite, value: serverAddress)
                 FieldLabel("状态", icon: session.tls ? "lock.fill" : "bolt.horizontal.fill", tile: .green,
                            value: session.tls ? "已连接 · TLS" : "已连接")
-            }
+            } header: { SectionLabel("服务器") }
             Section {
                 Button("退出登录", role: .destructive) { confirmSignOut = true }
                     .frame(maxWidth: .infinity)
@@ -56,6 +58,8 @@ struct SettingsScreen: View {
             } footer: {
                 Text("Noted \(version)").frame(maxWidth: .infinity).padding(.top, 12)
             }
+          }
+          .classicRowInsets()
         }
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.large)
@@ -136,6 +140,11 @@ struct SettingsScreen: View {
                     }
                 }
             }
+
+            NavigationLink(value: Route.deleteAccount) {
+                Label("删除账号", systemImage: "trash").foregroundStyle(Color.danger)
+            }
+            .accessibilityIdentifier("settings-delete-account")
         }
     }
 
@@ -144,6 +153,8 @@ struct SettingsScreen: View {
         Section {
             FieldLabel("服务器智能", icon: "cpu", tile: .teal, value: aiStatusText)
             if let ai, ai.status.enabled {
+                AIConsentRow()
+                OwnModelRow()
                 aiToggle("读取个人内容", icon: "person.fill", tile: .rust, \.allowLife)
                 aiToggle("读取工作内容", icon: "briefcase.fill", tile: .blue, \.allowWork)
                 featureToggle("每日简报", icon: "sun.horizon.fill", tile: .orange, \.dailyBriefing)
@@ -163,7 +174,7 @@ struct SettingsScreen: View {
                 .accessibilityIdentifier("settings-changes")
             }
         } header: {
-            Text("智能")
+            SectionLabel("智能")
         }
     }
 
@@ -330,13 +341,13 @@ private struct EmailPasswordSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
-                }
+                }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存", action: save)
                         .fontWeight(.semibold)
                         .disabled(!ready)
                         .accessibilityIdentifier("settings-email-save")
-                }
+                }.plainBar()
             }
             .onAppear {
                 email = currentEmail

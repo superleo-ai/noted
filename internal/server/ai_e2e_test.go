@@ -283,6 +283,7 @@ func TestSemanticSearchAndIndexer(t *testing.T) {
 	osaka, _ := notes.CreateNote(as(e.alice), &pb.CreateNoteRequest{Note: &pb.Note{Title: "Japan trip", Content: "book flights to osaka and a hotel"}})
 	notes.CreateNote(as(e.alice), &pb.CreateNoteRequest{Note: &pb.Note{Title: "Pasta", Content: "boil water add salt"}})
 	bobs, _ := notes.CreateNote(as(e.bob), &pb.CreateNoteRequest{Note: &pb.Note{Title: "Osaka", Content: "bob's osaka flights notes"}})
+	consentToAI(t, conn, as(e.alice))
 
 	ix := ai.NewIndexer(e.st, eng)
 	ctx, cancel := context.WithCancel(context.Background())

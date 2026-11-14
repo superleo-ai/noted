@@ -8,13 +8,13 @@ struct ExportScreen: View {
     @State private var file: URL?
 
     var body: some View {
-        List {
-            Section("包含") {
+        List { Group {
+            Section {
                 FieldLabel("笔记", icon: "doc.text.fill", tile: .orange, value: "Markdown")
                 FieldLabel("日程与待办", icon: "calendar", tile: .red, value: "iCalendar")
                 FieldLabel("全部数据", icon: "curlybraces", tile: .blue, value: "JSON")
                 FieldLabel("交易记录", icon: "chart.line.uptrend.xyaxis", tile: .green, value: "CSV")
-            }
+            } header: { SectionLabel("包含") }
             if let file {
                 Section {
                     FieldLabel(file.lastPathComponent, icon: "doc.zipper", tile: .graphite, value: size(file))
@@ -44,7 +44,7 @@ struct ExportScreen: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
             }
-        }
+        }.classicRowInsets() }
         .navigationTitle("导出数据")
         .navigationBarTitleDisplayMode(.inline)
     }

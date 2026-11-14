@@ -168,7 +168,7 @@ struct GoalFormSections: View {
                 } label: {
                     FieldLabel("单位", icon: "ruler", tile: .orange)
                 }
-                .pickerStyle(.menu)
+                .pickerStyle(.menu).tint(.secondaryText)
                 if draft.goalUnit == .custom {
                     SubFieldRow(title: "名称", placeholder: "如 杯", text: $draft.customUnit)
                 }
@@ -239,7 +239,7 @@ struct PeriodSegment: View {
             Text("每周").tag(Noted_V1_GoalPeriod.week)
             Text("每月").tag(Noted_V1_GoalPeriod.month)
         }
-        .pickerStyle(.segmented)
+        .pickerStyle(.segmented).classicSegmented()
         .labelsHidden()
     }
 }
@@ -321,7 +321,7 @@ struct DimensionSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            List { Group {
                 Section {
                     TextField("如 游泳", text: $title)
                         .font(.system(size: 22, weight: .semibold))
@@ -341,19 +341,19 @@ struct DimensionSheet: View {
                     } label: {
                         FieldLabel("单位", icon: "ruler", tile: .orange)
                     }
-                    .pickerStyle(.menu)
+                    .pickerStyle(.menu).tint(.secondaryText)
                     if unit == .custom { SubFieldRow(title: "名称", placeholder: "如 杯", text: $customUnit) }
                 }
-            }
+            }.classicRowInsets() }
             .navigationTitle("添加维度")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button("添加", action: add)
                         .disabled(!valid)
                         .accessibilityIdentifier("dimension-add")
-                }
+                }.plainBar()
             }
             .onAppear { focused = true }
         }

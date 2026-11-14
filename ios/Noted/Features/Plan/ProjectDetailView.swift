@@ -24,7 +24,7 @@ struct ProjectDetailView: View {
             if let p = data.project(projectID) {
                 content(p)
             } else if loaded {
-                List { Section { EmptyState(text: "项目已删除") } }
+                List { Group { Section { EmptyState(text: "项目已删除") } }.classicRowInsets() }
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -50,7 +50,7 @@ struct ProjectDetailView: View {
         let goals = d?.goals ?? []
         let objectives = d?.objectives ?? []
         let itemCount = tasks.count + events.count + notes.count + goals.count + objectives.count
-        return List {
+        return List { Group {
             Section {
                 PlanDetailHeader(title: p.title, subtitle: headerLine(p)) {
                     SpaceTag(space: p.space)
@@ -74,7 +74,7 @@ struct ProjectDetailView: View {
                         }
                         .swipeActions(edge: .trailing) { swipeButtons(.task(t.id), kind: "待办", title: t.title) }
                 }
-            } header: { Text("待办 · \(tasks.count)") }
+            } header: { SectionLabel("待办 · \(tasks.count)") }
 
             if !events.isEmpty {
                 Section {
@@ -85,7 +85,7 @@ struct ProjectDetailView: View {
                         }
                         .swipeActions(edge: .trailing) { swipeButtons(.event(e.id), kind: "日程", title: e.title) }
                     }
-                } header: { Text("日程 · \(events.count)") }
+                } header: { SectionLabel("日程 · \(events.count)") }
             }
 
             if !notes.isEmpty {
@@ -98,7 +98,7 @@ struct ProjectDetailView: View {
                         }
                         .swipeActions(edge: .trailing) { swipeButtons(.note(n.id), kind: "笔记", title: title) }
                     }
-                } header: { Text("笔记 · \(notes.count)") }
+                } header: { SectionLabel("笔记 · \(notes.count)") }
             }
 
             if !goals.isEmpty || !objectives.isEmpty {
@@ -119,16 +119,17 @@ struct ProjectDetailView: View {
                         }
                         .swipeActions(edge: .trailing) { swipeButtons(.objective(o.id), kind: "目标", title: o.title) }
                     }
-                } header: { Text("目标 · \(goals.count + objectives.count)") }
+                } header: { SectionLabel("目标 · \(goals.count + objectives.count)") }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .refreshable { await reload() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             BottomBar { addMenu }
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { moreMenu(p) }
+            ToolbarItem(placement: .topBarTrailing) { moreMenu(p) }.plainBar()
         }
         .confirmationDialog("删除“\(p.title)”？", isPresented: $askDelete, titleVisibility: .visible) {
             if itemCount > 0 {

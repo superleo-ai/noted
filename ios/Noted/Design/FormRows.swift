@@ -229,7 +229,7 @@ struct ReminderPicker: View {
         } label: {
             FieldLabel("提醒", icon: "bell", tile: .orange)
         }
-        .pickerStyle(.menu)
+        .pickerStyle(.menu).tint(.secondaryText)
     }
 }
 
@@ -250,7 +250,7 @@ struct RepeatPicker: View {
         } label: {
             FieldLabel("重复", icon: "repeat", tile: .gray)
         }
-        .pickerStyle(.menu)
+        .pickerStyle(.menu).tint(.secondaryText)
         if rule.frequency == .weekly {
             WeekdayPicker(days: $rule.weekdays)
         }
@@ -292,7 +292,7 @@ struct PriorityPicker: View {
         } label: {
             FieldLabel("优先级", icon: "flag", tile: .rust)
         }
-        .pickerStyle(.menu)
+        .pickerStyle(.menu).tint(.secondaryText)
     }
 }
 
@@ -316,7 +316,7 @@ struct SpaceSegment: View {
             Text("个人").tag(Noted_V1_Space.life)
             Text("工作").tag(Noted_V1_Space.work)
         }
-        .pickerStyle(.segmented)
+        .pickerStyle(.segmented).classicSegmented()
         .labelsHidden()
     }
 }
@@ -341,7 +341,7 @@ struct ProjectPicker: View {
         } label: {
             FieldLabel("项目", icon: "folder", tile: .teal)
         }
-        .pickerStyle(.menu)
+        .pickerStyle(.menu).tint(.secondaryText)
     }
 }
 

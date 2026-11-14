@@ -17,7 +17,7 @@ struct GoalDetailView: View {
             if let g = data.goal(goalID) {
                 content(g)
             } else if loaded {
-                List { Section { EmptyState(text: "目标已删除") } }
+                List { Group { Section { EmptyState(text: "目标已删除") } }.classicRowInsets() }
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -38,7 +38,7 @@ struct GoalDetailView: View {
         let history = data.checkIns[goalID] ?? []
         let monthStart = Date.now.startOfMonth
         let month = history.filter { $0.time.date >= monthStart }.reduce(0.0) { $0 + $1.amount }
-        return List {
+        return List { Group {
             Section {
                 PlanDetailHeader(title: g.title, subtitle: subtitle(g)) {
                     SpaceTag(space: g.space)
@@ -90,10 +90,11 @@ struct GoalDetailView: View {
                         }
                 }
             } header: {
-                Text("打卡记录")
+                SectionLabel("打卡记录")
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .refreshable {
             await data.refreshGoals()
             await data.loadCheckIns(goalID, limit: 200)
@@ -107,7 +108,7 @@ struct GoalDetailView: View {
                 } label: { Image(systemName: "ellipsis.circle") }
                 .accessibilityLabel("更多")
                 .accessibilityIdentifier("goal-more")
-            }
+            }.plainBar()
         }
         .sheet(isPresented: $askMinutes) {
             MinutesCheckInSheet(goal: g) { minutes, count in

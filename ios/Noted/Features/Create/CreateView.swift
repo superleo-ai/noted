@@ -24,12 +24,16 @@ struct CreateView: View {
     @FocusState private var captureFocused: Bool
 
     var body: some View {
-        List {
+        List { Group {
             if showsCapture {
                 Section {
-                    CaptureBar(text: $capture, focus: $captureFocused) { text in
-                        captureFocused = false
-                        router.replaceTop(.ask(text))
+                    if session.aiLocked {
+                        ProLockedRow(title: "提问、记一笔、拆成项目", detail: "AI 是 Noted Pro 的功能")
+                    } else {
+                        CaptureBar(text: $capture, focus: $captureFocused) { text in
+                            captureFocused = false
+                            router.replaceTop(.ask(text))
+                        }
                     }
                 }
                 .listSectionSpacing(16)
@@ -38,7 +42,7 @@ struct CreateView: View {
                 Picker("类型", selection: kindSelection) {
                     ForEach(CreateKind.allCases) { Text($0.label).tag($0) }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented).classicSegmented()
                 .labelsHidden()
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
@@ -54,8 +58,9 @@ struct CreateView: View {
             case .project: ProjectFormSections(draft: draft)
             case .goal: GoalFormSections(draft: draft) { addingDimension = true }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle("新建")
         .navigationBarTitleDisplayMode(.inline)
@@ -68,13 +73,13 @@ struct CreateView: View {
                     }
                 }
                 .accessibilityElement(children: .combine)
-            }
+            }.plainBar()
             if showsHint {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("丢弃") { confirmDiscard = true }
                         .accessibilityLabel("丢弃草稿")
                         .accessibilityIdentifier("create-discard")
-                }
+                }.plainBar()
             }
         }
         .confirmationDialog("丢弃这份草稿？", isPresented: $confirmDiscard, titleVisibility: .visible) {

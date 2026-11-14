@@ -24,14 +24,14 @@ struct TodoDetailView: View {
             } else if loading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).background(.groupedBackground)
             } else {
-                List { Section { EmptyState(text: "这个待办已删除") } }
+                List { Group { Section { EmptyState(text: "这个待办已删除") } }.classicRowInsets() }
             }
         }
         .navigationTitle("待办")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let task = data.task(id) {
-                ToolbarItem(placement: .topBarTrailing) { moreMenu(task) }
+                ToolbarItem(placement: .topBarTrailing) { moreMenu(task) }.plainBar()
             }
         }
         .confirmationDialog("删除待办？", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -58,13 +58,14 @@ struct TodoDetailView: View {
     // MARK: page
 
     private func content(_ task: Noted_V1_Task) -> some View {
-        List {
+        List { Group {
             header(task)
             ProgressSection(task: task)
             history(task)
             fields(task)
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .listSectionSpacing(20)
         .scrollDismissesKeyboard(.interactively)
     }
@@ -146,7 +147,7 @@ struct TodoDetailView: View {
                     }
                 }
             } header: {
-                Text("记录")
+                SectionLabel("记录")
             }
         }
     }

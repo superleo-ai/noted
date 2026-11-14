@@ -10,7 +10,7 @@ struct PlanView: View {
         let goals = data.standaloneGoals
         let objectives = data.visibleObjectives
         ScrollViewReader { proxy in
-            List {
+            List { Group {
                 Section {
                     if projects.isEmpty {
                         EmptyState(text: "没有进行中的项目")
@@ -34,7 +34,7 @@ struct PlanView: View {
                     SectionHeader("目标", action: "全部") { router.push(.goals) }
                         .accessibilityIdentifier("plan-goals-all")
                 }
-            }
+            }.classicRowInsets() }
             .listStyle(.insetGrouped)
             .onChange(of: router.scrollToTopRequest) { _, _ in
                 withAnimation { proxy.scrollTo("top", anchor: .top) }
@@ -42,7 +42,7 @@ struct PlanView: View {
         }
         .refreshable { await data.refreshAll() }
         .navigationTitle("计划")
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() } }
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }.plainBar() }
     }
 }
 

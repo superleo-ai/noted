@@ -50,6 +50,17 @@ func (s *Store) SetPreference(ctx context.Context, userID, key, value string, if
 	if key == AIAccessKey || key == AIFeaturesKey {
 		return Preference{}, invalid("%q is managed through the AIService", key)
 	}
+	if key == AIConsentKey {
+		before, err := s.AIConsented(ctx, userID)
+		if err != nil {
+			return Preference{}, err
+		}
+		p, err := s.setPreference(ctx, userID, key, value, ifVersion)
+		if err != nil {
+			return p, err
+		}
+		return p, s.consentChanged(ctx, userID, before)
+	}
 	return s.setPreference(ctx, userID, key, value, ifVersion)
 }
 
@@ -99,12 +110,19 @@ func (s *Store) DeletePreference(ctx context.Context, userID, key string) error 
 	if key == AIAccessKey || key == AIFeaturesKey {
 		return invalid("%q is managed through the AIService", key)
 	}
+	before, err := s.AIConsented(ctx, userID)
+	if err != nil {
+		return err
+	}
 	res, err := s.db.ExecContext(ctx, `DELETE FROM preferences WHERE user_id = ? AND key = ?`, userID, key)
 	if err != nil {
 		return err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrNotFound
+	}
+	if key == AIConsentKey {
+		return s.consentChanged(ctx, userID, before)
 	}
 	return nil
 }

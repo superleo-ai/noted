@@ -38,9 +38,13 @@ lsof -ti tcp:$HTTP -sTCP:LISTEN | xargs kill 2>/dev/null
 python3 "$HERE/fake_llm.py" $LLM >/dev/null 2>&1 & LLM_PID=$!
 export NOTED_DATA_DIR="$WORK/data"; rm -rf "$NOTED_DATA_DIR"; mkdir -p "$NOTED_DATA_DIR"
 TOKEN=$("$WORK/noted" user add tester 2>&1 | grep -o 'noted_[0-9a-f]*' | head -1)
+# AI is for Noted Pro users; the tester is granted it like the owner's own accounts.
+"$WORK/noted" user pro tester >/dev/null || exit 1
+# A second user for the 删除账号 test to delete, so the seeded one stays.
+DELETE_TOKEN=$("$WORK/noted" user add uit-deleted 2>&1 | grep -o 'noted_[0-9a-f]*' | head -1)
 TZNAME=$(readlink /etc/localtime | sed "s|.*/zoneinfo/||")
 export NOTED_TIME_ZONE="${TZNAME:-UTC}"
-NOTED_AI_ENABLED=true NOTED_AI_LLM_BASE_URL=http://127.0.0.1:$LLM/v1 NOTED_AI_LLM_API_KEY=fake NOTED_AI_LLM_MODEL=fake-model \
+NOTED_AI_ENABLED=true NOTED_AI_DAILY_LIMIT=0 NOTED_AI_LLM_BASE_URL=http://127.0.0.1:$LLM/v1 NOTED_AI_LLM_API_KEY=fake NOTED_AI_LLM_MODEL=fake-model \
   NOTED_LISTEN=127.0.0.1:$PORT NOTED_MCP_LISTEN=127.0.0.1:$HTTP "$WORK/noted" serve >"$WORK/server.log" 2>&1 & SERVER_PID=$!
 A=127.0.0.1:$PORT
 for _ in $(seq 50); do nc -z 127.0.0.1 $PORT 2>/dev/null && break; sleep 0.2; done
@@ -52,7 +56,7 @@ echo "== UI tests =="
 rm -f /tmp/noted-ui-pending.json /tmp/noted-ui-export.zip
 TARGETS=(-only-testing:NotedUITests)
 if [ -n "$ONLY" ]; then TARGETS=(); for t in ${ONLY//,/ }; do TARGETS+=(-only-testing:"NotedUITests/$t"); done; fi
-TEST_RUNNER_NOTED_TOKEN=$TOKEN TEST_RUNNER_NOTED_PORT=$PORT TEST_RUNNER_NOTED_MCP_PORT=$HTTP \
+TEST_RUNNER_NOTED_TOKEN=$TOKEN TEST_RUNNER_NOTED_DELETE_TOKEN=$DELETE_TOKEN TEST_RUNNER_NOTED_PORT=$PORT TEST_RUNNER_NOTED_MCP_PORT=$HTTP \
   xcodebuild test -project Noted.xcodeproj -scheme Noted "${TARGETS[@]}" \
   -destination "$DEST" -derivedDataPath "$DD" "${SIGN[@]}" 2>&1 | tee "$WORK/ui-tests.log" \
   | grep -E "error:|Test Case.*(passed|failed|skipped)|Executed [0-9]+ tests|TEST (SUCCEEDED|FAILED)|: error: " | sort -u
@@ -69,6 +73,8 @@ check "projects: linked, renamed, deleted keeping its to-do" "python3 $HERE/veri
 check "notes: edited, pinned, deleted, referenced" "python3 $HERE/verify.py notes"
 check "the event title edit was saved, the deleted one is gone" "python3 $HERE/verify.py events"
 check "the token made in the app was revoked" "python3 $HERE/verify.py tokens"
+check "the account deleted in the app is gone, the seeded one is not" \
+  "\"$WORK/noted\" user list 2>/dev/null | grep -q tester && ! \"$WORK/noted\" user list 2>/dev/null | grep -q uit-deleted"
 echo
 [ $fail = 0 ] && echo "ALL PASSED" || echo "SOME FAILED (server log: $WORK/server.log)"
 exit $fail

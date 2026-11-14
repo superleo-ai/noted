@@ -250,6 +250,7 @@ func TestSemanticIndexHonoursTheAccessSetting(t *testing.T) {
 	notes.CreateNote(ctx, &pb.CreateNoteRequest{Note: &pb.Note{Title: "Trip", Content: "osaka flights", Space: pb.Space_SPACE_LIFE}})
 	u, _ := e.st.EnsureUser(context.Background(), "alice")
 
+	consentToAI(t, conn, ctx)
 	aic.SetAIAccess(ctx, &pb.SetAIAccessRequest{AllowWork: false, AllowLife: true})
 	ix := ai.NewIndexer(e.st, eng)
 	run, cancel := context.WithCancel(context.Background())

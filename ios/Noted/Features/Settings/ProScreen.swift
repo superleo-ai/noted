@@ -1,22 +1,22 @@
 import StoreKit
 import SwiftUI
 
-/// Noted Pro: what it adds, the two subscriptions, buy and restore. Shows 已开通 when the
+/// Noted Pro: what it adds, one price bought once, buy and restore. Shows 已开通 when the
 /// App Store or the server (`noted user pro`) has granted it.
 struct ProScreen: View {
     @Environment(Session.self) private var session
     @Environment(Toaster.self) private var toaster
-    @State private var yearly = true
     @State private var loaded = false
-    @State private var manage = false
 
-    /// 功能 · 免费 · Pro. The first rows are not gated anywhere in the app, so they are marked free.
-    private static let features: [(String, Bool)] = [
+    /// 功能 · 免费 · Pro. The free rows are not gated anywhere in the app.
+    static let features: [(String, Bool)] = [
         ("内置主题（日光、纸本、苔绿）", true),
         ("多设备同步", true),
         ("接入 AI 助手（MCP）", true),
         ("无限项目与目标", true),
         ("导出全部数据", true),
+        ("AI 提问与一句话拆成项目", false),
+        ("AI 今日简报、笔记摘要与标签、提取待办", false),
         ("自定义主题与配色", false),
         ("自定义概览页模块与顺序", false),
         ("桌面与锁屏小组件", false),
@@ -24,7 +24,7 @@ struct ProScreen: View {
 
     var body: some View {
         let pro = session.pro
-        List {
+        List { Group {
             Section {
                 VStack(spacing: 6) {
                     Image(systemName: "star.fill")
@@ -35,7 +35,7 @@ struct ProScreen: View {
                         .padding(.bottom, 8)
                         .accessibilityHidden(true)
                     Text("Noted Pro").font(.largeTitle.weight(.bold))
-                    Text(pro.isPro ? "已开通，感谢支持" : "一次订阅，所有设备")
+                    Text(pro.isPro ? "已开通，感谢支持" : "一次买断，永久使用")
                         .foregroundStyle(.secondaryText)
                 }
                 .frame(maxWidth: .infinity)
@@ -63,21 +63,18 @@ struct ProScreen: View {
                     .accessibilityLabel(f.1 ? "\(f.0)，免费" : "\(f.0)，Pro")
                 }
             } footer: {
-                Text("订阅由 App Store 管理，可随时取消。取消后已有的主题和布局继续生效，只是不能再修改。")
+                Text("一次购买，同一 Apple ID 的所有设备都能用，没有月费或年费。AI 功能每天有使用次数上限。")
             }
             if pro.isPro {
                 Section {
                     LabeledContent("状态") {
-                        Text(pro.grantedByServer ? "已开通 · 服务器授予" : "已开通").foregroundStyle(.success)
+                        Text(pro.grantedByServer && !pro.owned ? "已开通 · 服务器授予" : "已开通 · 永久").foregroundStyle(.success)
                     }
-                    if !pro.grantedByServer {
-                        Button("管理订阅") { manage = true }
-                            .accessibilityIdentifier("pro-manage")
-                    }
+                    .accessibilityIdentifier("pro-status")
                 }
             } else {
                 Section {
-                    plans(pro)
+                    price(pro)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets())
                 } footer: {
@@ -88,11 +85,15 @@ struct ProScreen: View {
                 Section {
                     VStack(spacing: 12) {
                         Button { buy(pro) } label: {
-                            if pro.busy { ProgressView().tint(.white) } else { Text("订阅") }
+                            if pro.busy {
+                                ProgressView().tint(.white)
+                            } else {
+                                Text(pro.product.map { "\($0.displayPrice) 买断" } ?? "购买")
+                            }
                         }
                         .buttonStyle(.wide)
-                        .disabled(pro.busy || chosen(pro) == nil)
-                        .accessibilityIdentifier("subscribe")
+                        .disabled(pro.busy || pro.product == nil)
+                        .accessibilityIdentifier("pro-buy")
                         Button("恢复购买") { Task { await restore(pro) } }
                             .font(.subheadline)
                             .disabled(pro.busy)
@@ -102,7 +103,7 @@ struct ProScreen: View {
                     .listRowInsets(EdgeInsets())
                 }
             }
-        }
+        }.classicRowInsets() }
         .navigationTitle("Noted Pro")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -110,26 +111,28 @@ struct ProScreen: View {
             await pro.load()
             loaded = true
         }
-        .manageSubscriptionsSheet(isPresented: $manage)
     }
 
+    /// The one price: a white card in the existing plan style.
     @ViewBuilder
-    private func plans(_ pro: Pro) -> some View {
-        if pro.products.isEmpty {
+    private func price(_ pro: Pro) -> some View {
+        if let p = pro.product {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("永久版").font(.footnote).foregroundStyle(.secondaryText)
+                Text(p.displayPrice).font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(.primary)
+                Text("一次买断，永久使用").font(.footnote).foregroundStyle(.secondaryText)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(.white, in: RoundedRectangle(cornerRadius: 14))
+            .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.tint, lineWidth: 2) }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("pro-price")
+        } else {
             Group {
                 if loaded { Text("暂时读不到价格").foregroundStyle(.secondaryText) } else { ProgressView() }
             }
             .frame(maxWidth: .infinity, minHeight: 90)
-        } else {
-            HStack(spacing: 10) {
-                if let m = pro.monthly {
-                    PlanCard(title: "月付", price: m.displayPrice, period: "每月", isOn: !yearly) { yearly = false }
-                }
-                if let y = pro.yearly {
-                    PlanCard(title: pro.yearlySaving.map { "年付 · 省 \($0)%" } ?? "年付",
-                             price: y.displayPrice, period: "每年", isOn: yearly) { yearly = true }
-                }
-            }
         }
     }
 
@@ -142,14 +145,9 @@ struct ProScreen: View {
         }
     }
 
-    private func chosen(_ pro: Pro) -> Product? {
-        yearly ? (pro.yearly ?? pro.monthly) : (pro.monthly ?? pro.yearly)
-    }
-
     private func buy(_ pro: Pro) {
-        guard let p = chosen(pro) else { return }
         Task {
-            await pro.buy(p)
+            await pro.buy()
             if pro.isPro { toaster.show("已开通 Pro", systemImage: "star.fill") }
         }
     }
@@ -157,35 +155,5 @@ struct ProScreen: View {
     private func restore(_ pro: Pro) async {
         await pro.restore()
         if pro.isPro { toaster.show("已恢复购买", systemImage: "star.fill") }
-    }
-}
-
-/// One subscription choice: a white card, outlined in the accent when chosen.
-private struct PlanCard: View {
-    let title: String
-    let price: String
-    let period: String
-    let isOn: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.footnote).foregroundStyle(.secondaryText)
-                Text(price).font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(.primary)
-                Text(period).font(.footnote).foregroundStyle(.secondaryText)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(.white, in: RoundedRectangle(cornerRadius: 14))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(isOn ? AnyShapeStyle(.tint) : AnyShapeStyle(.hairline), lineWidth: isOn ? 2 : 1)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title) \(price) \(period)")
-        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }

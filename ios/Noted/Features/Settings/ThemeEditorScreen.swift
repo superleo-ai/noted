@@ -21,7 +21,7 @@ struct ThemeEditorScreen: View {
 
     var body: some View {
         let p = draft.palette
-        List {
+        List { Group {
             Section {
                 ThemePreviewCard(palette: p, title: "预览 · 我的主题")
                     .listRowInsets(EdgeInsets())
@@ -53,7 +53,7 @@ struct ThemeEditorScreen: View {
                         Text("标准").tag("regular")
                         Text("宽松").tag("roomy")
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).classicSegmented()
                     .frame(width: 190)
                     .accessibilityIdentifier("theme-editor-density")
                 }
@@ -62,7 +62,7 @@ struct ThemeEditorScreen: View {
                         Text("无衬线").tag(false)
                         Text("衬线").tag(true)
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).classicSegmented()
                     .frame(width: 150)
                     .accessibilityIdentifier("theme-editor-serif")
                 }
@@ -82,7 +82,7 @@ struct ThemeEditorScreen: View {
                         .accessibilityIdentifier("theme-editor-reset")
                 }
             }
-        }
+        }.classicRowInsets() }
         .navigationTitle("自定义主题")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -93,13 +93,13 @@ struct ThemeEditorScreen: View {
                         ProMark()
                     }
                     .accessibilityElement(children: .combine)
-                }
+                }.plainBar()
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("保存") { save() }
                     .fontWeight(.semibold)
                     .accessibilityIdentifier("theme-editor-save-top")
-            }
+            }.plainBar()
         }
         .onAppear(perform: start)
     }

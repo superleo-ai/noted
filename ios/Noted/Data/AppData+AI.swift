@@ -6,11 +6,21 @@ import SwiftProtobuf
 // (AppData+Notes). Nothing here writes data except undoChange and suggestTags(apply: true).
 
 extension AppData {
+    /// AI is Noted Pro (bought, or granted by the server). Without it nothing reaches the model; a
+    /// call the person started says why, automatic ones (简报, 摘要) stay quiet.
+    func aiIsPro(announce: Bool = false) -> Bool {
+        if !session.aiLocked { return true }
+        if announce { toaster.show("AI 是 Noted Pro 的功能", systemImage: "lock.fill") }
+        return false
+    }
+
     /// One turn with the assistant. The reply may carry a proposal (nothing done yet) and the rows
     /// it read (references). Pass the returned session id back to continue the conversation.
     func ask(_ message: String, sessionID: String = "", space: Noted_V1_Space) async -> Noted_V1_AskResponse? {
         var r = Noted_V1_AskRequest()
         r.message = message; r.sessionID = sessionID; r.space = space
+        guard aiIsPro(announce: true) else { return nil }
+        guard await AIConsent.shared.request(session.api) else { return nil }
         return await perform { try await $0.ai.ask(r) }
     }
 
@@ -18,13 +28,16 @@ extension AppData {
     func planFromText(_ text: String, space: Noted_V1_Space) async -> Noted_V1_Proposal? {
         var r = Noted_V1_PlanFromTextRequest()
         r.text = text; r.space = space
+        guard aiIsPro(announce: true) else { return nil }
+        guard await AIConsent.shared.request(session.api) else { return nil }
         return await perform { try await $0.ai.planFromText(r) }
     }
 
     /// Today's one-paragraph briefing. nil when AI is off or the feature is turned off (no toast:
     /// the overview just hides the line).
     func dailyBriefing(space: Noted_V1_Space, day: Date = .now) async -> String? {
-        guard let api = session.api else { return nil }
+        guard aiIsPro() else { return nil }
+        guard let api = session.api, await AIConsent.shared.isGranted(api) else { return nil }
         var r = Noted_V1_DailyBriefingRequest()
         r.day = Google_Protobuf_Timestamp(date: day); r.timeZone = TimeZone.current.identifier; r.space = space
         let s = try? await api.ai.dailyBriefing(r).briefing
@@ -72,7 +85,8 @@ extension AppData {
 
     /// A one-paragraph summary of a note. nil when unavailable (silent).
     func summarizeNote(_ noteID: String) async -> String? {
-        guard let api = session.api else { return nil }
+        guard aiIsPro() else { return nil }
+        guard let api = session.api, await AIConsent.shared.isGranted(api) else { return nil }
         var r = Noted_V1_SummarizeNoteRequest(); r.noteID = noteID
         let s = try? await api.ai.summarizeNote(r).summary
         return (s?.isEmpty ?? true) ? nil : s
@@ -80,7 +94,8 @@ extension AppData {
 
     /// Tags the assistant would add to a note. `apply` also merges them into the note.
     func suggestTags(_ noteID: String, apply: Bool = false) async -> [String] {
-        guard let api = session.api else { return [] }
+        guard aiIsPro() else { return [] }
+        guard let api = session.api, await AIConsent.shared.isGranted(api) else { return [] }
         var r = Noted_V1_SuggestTagsRequest(); r.noteID = noteID; r.apply = apply
         return (try? await api.ai.suggestTags(r).tags) ?? []
     }

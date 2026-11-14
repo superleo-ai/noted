@@ -14,6 +14,7 @@ extension AppData {
 
     /// Asks the assistant for the to-dos written in a note. Nothing is created until accepted.
     func extractTasks(noteID: String) async -> Noted_V1_Proposal? {
+        guard aiIsPro(announce: true) else { return nil }
         var r = Noted_V1_ExtractTasksRequest(); r.noteID = noteID
         return await perform { try await $0.ai.extractTasks(r) }
     }

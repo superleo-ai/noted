@@ -468,3 +468,19 @@ input::placeholder { color: var(--label3); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- policy pages (/privacy, /terms, /support) ---------- */
+.doc { padding: 40px 0 72px; }
+.doc-in { max-width: 760px; }
+.doc-card { background: var(--card); border-radius: 24px; padding: 28px 22px; }
+@media (min-width: 720px) { .doc { padding: 64px 0 104px; } .doc-card { padding: 40px 44px; } }
+.doc h1 { font-family: var(--display); font-weight: 800; letter-spacing: -.03em; line-height: 1.15; font-size: clamp(28px, 7vw, 40px); }
+.doc .doc-date { color: var(--label2); font-size: 14px; margin-top: 10px; }
+.doc h2 { font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: -.015em; line-height: 1.35; margin-top: 32px; }
+.doc p, .doc ul { margin: 12px 0 0; color: var(--label); font-size: 16px; line-height: 1.75; }
+.doc ul { padding-left: 1.3em; }
+.doc li + li { margin-top: 6px; }
+.doc .doc-lang { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--sep); }
+.doc .doc-lang h1 { font-size: clamp(24px, 6vw, 32px); }
+.doc .doc-note { background: var(--bg); border-radius: 14px; padding: 14px 16px; color: var(--label2); font-size: 15px; }
+.doc-nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 20px; font-size: 14px; }

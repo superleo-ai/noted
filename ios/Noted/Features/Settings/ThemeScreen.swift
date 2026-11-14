@@ -11,8 +11,8 @@ struct ThemeScreen: View {
 
     var body: some View {
         let theme = session.theme
-        List {
-            Section("主题") {
+        List { Group {
+            Section {
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(BuiltinTheme.allCases) { t in
                         ThemeTile(palette: t.palette, title: t.label, isOn: theme.base == t.rawValue) { pick(t.rawValue) }
@@ -28,7 +28,7 @@ struct ThemeScreen: View {
                     }
                 }
                 .padding(.vertical, 6)
-            }
+            } header: { SectionLabel("主题") }
             Section {
                 Toggle("工作 / 个人各用一种颜色", isOn: Binding(get: { theme.modeColors }, set: setModeColors))
                     .tint(.switchOn)
@@ -52,7 +52,7 @@ struct ThemeScreen: View {
                     .listRowSeparator(.hidden)
             }
             .listSectionSeparator(.hidden)
-        }
+        }.classicRowInsets() }
         .navigationTitle("主题")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("删除我的主题？", isPresented: $confirmDelete, titleVisibility: .visible) {

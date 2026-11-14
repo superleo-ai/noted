@@ -17,9 +17,25 @@ final class CalendarUITests: NotedUITestCase {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'event-block-' AND label CONTAINS %@", title)).firstMatch
     }
 
+    /// Scrolls the day grid until `e` shows. The week strip and the all-day chips above the grid
+    /// do not scroll, and with many all-day items they reach below where `reveal` starts a drag.
+    private func revealInGrid(_ e: XCUIElement) -> XCUIElement {
+        exists(e)
+        let w = app.windows.firstMatch
+        for _ in 0..<12 {
+            if e.isHittable && e.frame.minY > 330 && e.frame.maxY < visibleBottom { return e }
+            let top = 380 / w.frame.height, bottom = (visibleBottom - 20) / w.frame.height
+            let down = e.frame.minY <= 330   // above the visible grid: pull the grid down
+            let from = w.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? top : bottom))
+            let to = w.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? bottom : top))
+            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.15)
+        }
+        return reveal(e)
+    }
+
     func testDayWeekMonth() throws {
         try launch(tab: "calendar")
-        exists(app.navigationBars["日历"])
+        exists(app.segmentedControls["calendar-mode"])   // the calendar root draws its own bar
         mode("周")
         exists(app.buttons["cal-week-day-\(todayKey)"])
         mode("月")
@@ -43,7 +59,7 @@ final class CalendarUITests: NotedUITestCase {
         let title = unique("UIT 七点")
         type(title, into: app.textFields["create-title"])
         app.buttons["create-add"].tap()
-        exists(app.navigationBars["日历"])
+        exists(app.segmentedControls["calendar-mode"])   // the calendar root draws its own bar
         exists(block(title), 10)
         XCTAssertTrue(block(title).label.contains("07:00"), block(title).label)
     }
@@ -53,7 +69,7 @@ final class CalendarUITests: NotedUITestCase {
         mode("日")
         app.buttons["calendar-today"].tap()
         let e = block("UIT 日程编辑")
-        reveal(e).tap()
+        revealInGrid(e).tap()
         exists(app.navigationBars["日程"])
         let title = byID("event-title")
         exists(title)
@@ -64,13 +80,13 @@ final class CalendarUITests: NotedUITestCase {
         gone(block("UIT 日程编辑"))
 
         let d = block("UIT 日程删除")
-        reveal(d).tap()
+        revealInGrid(d).tap()
         exists(app.navigationBars["日程"])
         reveal(app.buttons["event-delete"]).tap()
         let confirm = app.buttons["删除日程"].firstMatch
         exists(confirm)
         confirm.tap()
-        exists(app.navigationBars["日历"])
+        exists(app.segmentedControls["calendar-mode"])   // the calendar root draws its own bar
         gone(block("UIT 日程删除"))
     }
 }

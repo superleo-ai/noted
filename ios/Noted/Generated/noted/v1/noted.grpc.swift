@@ -4547,6 +4547,45 @@ public enum Noted_V1_AIService: Sendable {
                 type: .unary
             )
         }
+        /// Namespace for "GetModelSettings" metadata.
+        public enum GetModelSettings: Sendable {
+            /// Request type for "GetModelSettings".
+            public typealias Input = Noted_V1_GetModelSettingsRequest
+            /// Response type for "GetModelSettings".
+            public typealias Output = Noted_V1_ModelSettings
+            /// Descriptor for "GetModelSettings".
+            public static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "noted.v1.AIService"),
+                method: "GetModelSettings",
+                type: .unary
+            )
+        }
+        /// Namespace for "SetModelSettings" metadata.
+        public enum SetModelSettings: Sendable {
+            /// Request type for "SetModelSettings".
+            public typealias Input = Noted_V1_SetModelSettingsRequest
+            /// Response type for "SetModelSettings".
+            public typealias Output = Noted_V1_ModelSettings
+            /// Descriptor for "SetModelSettings".
+            public static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "noted.v1.AIService"),
+                method: "SetModelSettings",
+                type: .unary
+            )
+        }
+        /// Namespace for "ClearModelSettings" metadata.
+        public enum ClearModelSettings: Sendable {
+            /// Request type for "ClearModelSettings".
+            public typealias Input = Noted_V1_ClearModelSettingsRequest
+            /// Response type for "ClearModelSettings".
+            public typealias Output = Noted_V1_ModelSettings
+            /// Descriptor for "ClearModelSettings".
+            public static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "noted.v1.AIService"),
+                method: "ClearModelSettings",
+                type: .unary
+            )
+        }
         /// Descriptors for all methods in the "noted.v1.AIService" service.
         public static let descriptors: [GRPCCore.MethodDescriptor] = [
             GetStatus.descriptor,
@@ -4559,7 +4598,10 @@ public enum Noted_V1_AIService: Sendable {
             GetAIAccess.descriptor,
             SetAIAccess.descriptor,
             GetAIFeatures.descriptor,
-            SetAIFeatures.descriptor
+            SetAIFeatures.descriptor,
+            GetModelSettings.descriptor,
+            SetModelSettings.descriptor,
+            ClearModelSettings.descriptor
         ]
     }
 }
@@ -4767,6 +4809,61 @@ extension Noted_V1_AIService {
             request: GRPCCore.StreamingServerRequest<Noted_V1_SetAIFeaturesRequest>,
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_AIFeatures>
+
+        /// Handle the "GetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > The caller's own model ("bring your own key"), for Noted Pro users. While
+        /// > it is set and the caller is Pro, their AI requests go to that endpoint
+        /// > (any OpenAI-compatible API) instead of the server's, and do not count
+        /// > against the daily cap. The key is stored encrypted and never returned.
+        /// > Without Pro a stored key is kept but not used.
+        ///
+        /// - Parameters:
+        ///   - request: A streaming request of `Noted_V1_GetModelSettingsRequest` messages.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A streaming response of `Noted_V1_ModelSettings` messages.
+        func getModelSettings(
+            request: GRPCCore.StreamingServerRequest<Noted_V1_GetModelSettingsRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_ModelSettings>
+
+        /// Handle the "SetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Makes one tiny test call before saving: INVALID_ARGUMENT when the
+        /// > endpoint does not answer, FAILED_PRECONDITION without Pro.
+        ///
+        /// - Parameters:
+        ///   - request: A streaming request of `Noted_V1_SetModelSettingsRequest` messages.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A streaming response of `Noted_V1_ModelSettings` messages.
+        func setModelSettings(
+            request: GRPCCore.StreamingServerRequest<Noted_V1_SetModelSettingsRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_ModelSettings>
+
+        /// Handle the "ClearModelSettings" method.
+        ///
+        /// - Parameters:
+        ///   - request: A streaming request of `Noted_V1_ClearModelSettingsRequest` messages.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A streaming response of `Noted_V1_ModelSettings` messages.
+        func clearModelSettings(
+            request: GRPCCore.StreamingServerRequest<Noted_V1_ClearModelSettingsRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_ModelSettings>
     }
 
     /// Service protocol for the "noted.v1.AIService" service.
@@ -4958,6 +5055,61 @@ extension Noted_V1_AIService {
             request: GRPCCore.ServerRequest<Noted_V1_SetAIFeaturesRequest>,
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.ServerResponse<Noted_V1_AIFeatures>
+
+        /// Handle the "GetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > The caller's own model ("bring your own key"), for Noted Pro users. While
+        /// > it is set and the caller is Pro, their AI requests go to that endpoint
+        /// > (any OpenAI-compatible API) instead of the server's, and do not count
+        /// > against the daily cap. The key is stored encrypted and never returned.
+        /// > Without Pro a stored key is kept but not used.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_GetModelSettingsRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A response containing a single `Noted_V1_ModelSettings` message.
+        func getModelSettings(
+            request: GRPCCore.ServerRequest<Noted_V1_GetModelSettingsRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.ServerResponse<Noted_V1_ModelSettings>
+
+        /// Handle the "SetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Makes one tiny test call before saving: INVALID_ARGUMENT when the
+        /// > endpoint does not answer, FAILED_PRECONDITION without Pro.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_SetModelSettingsRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A response containing a single `Noted_V1_ModelSettings` message.
+        func setModelSettings(
+            request: GRPCCore.ServerRequest<Noted_V1_SetModelSettingsRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.ServerResponse<Noted_V1_ModelSettings>
+
+        /// Handle the "ClearModelSettings" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_ClearModelSettingsRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A response containing a single `Noted_V1_ModelSettings` message.
+        func clearModelSettings(
+            request: GRPCCore.ServerRequest<Noted_V1_ClearModelSettingsRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.ServerResponse<Noted_V1_ModelSettings>
     }
 
     /// Simple service protocol for the "noted.v1.AIService" service.
@@ -5147,6 +5299,61 @@ extension Noted_V1_AIService {
             request: Noted_V1_SetAIFeaturesRequest,
             context: GRPCCore.ServerContext
         ) async throws -> Noted_V1_AIFeatures
+
+        /// Handle the "GetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > The caller's own model ("bring your own key"), for Noted Pro users. While
+        /// > it is set and the caller is Pro, their AI requests go to that endpoint
+        /// > (any OpenAI-compatible API) instead of the server's, and do not count
+        /// > against the daily cap. The key is stored encrypted and never returned.
+        /// > Without Pro a stored key is kept but not used.
+        ///
+        /// - Parameters:
+        ///   - request: A `Noted_V1_GetModelSettingsRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A `Noted_V1_ModelSettings` to respond with.
+        func getModelSettings(
+            request: Noted_V1_GetModelSettingsRequest,
+            context: GRPCCore.ServerContext
+        ) async throws -> Noted_V1_ModelSettings
+
+        /// Handle the "SetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Makes one tiny test call before saving: INVALID_ARGUMENT when the
+        /// > endpoint does not answer, FAILED_PRECONDITION without Pro.
+        ///
+        /// - Parameters:
+        ///   - request: A `Noted_V1_SetModelSettingsRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A `Noted_V1_ModelSettings` to respond with.
+        func setModelSettings(
+            request: Noted_V1_SetModelSettingsRequest,
+            context: GRPCCore.ServerContext
+        ) async throws -> Noted_V1_ModelSettings
+
+        /// Handle the "ClearModelSettings" method.
+        ///
+        /// - Parameters:
+        ///   - request: A `Noted_V1_ClearModelSettingsRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A `Noted_V1_ModelSettings` to respond with.
+        func clearModelSettings(
+            request: Noted_V1_ClearModelSettingsRequest,
+            context: GRPCCore.ServerContext
+        ) async throws -> Noted_V1_ModelSettings
     }
 }
 
@@ -5275,6 +5482,39 @@ extension Noted_V1_AIService.StreamingServiceProtocol {
                 )
             }
         )
+        router.registerHandler(
+            forMethod: Noted_V1_AIService.Method.GetModelSettings.descriptor,
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_GetModelSettingsRequest>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_ModelSettings>(),
+            handler: { request, context in
+                try await self.getModelSettings(
+                    request: request,
+                    context: context
+                )
+            }
+        )
+        router.registerHandler(
+            forMethod: Noted_V1_AIService.Method.SetModelSettings.descriptor,
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_SetModelSettingsRequest>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_ModelSettings>(),
+            handler: { request, context in
+                try await self.setModelSettings(
+                    request: request,
+                    context: context
+                )
+            }
+        )
+        router.registerHandler(
+            forMethod: Noted_V1_AIService.Method.ClearModelSettings.descriptor,
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_ClearModelSettingsRequest>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_ModelSettings>(),
+            handler: { request, context in
+                try await self.clearModelSettings(
+                    request: request,
+                    context: context
+                )
+            }
+        )
     }
 }
 
@@ -5396,6 +5636,39 @@ extension Noted_V1_AIService.ServiceProtocol {
         context: GRPCCore.ServerContext
     ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_AIFeatures> {
         let response = try await self.setAIFeatures(
+            request: GRPCCore.ServerRequest(stream: request),
+            context: context
+        )
+        return GRPCCore.StreamingServerResponse(single: response)
+    }
+
+    public func getModelSettings(
+        request: GRPCCore.StreamingServerRequest<Noted_V1_GetModelSettingsRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_ModelSettings> {
+        let response = try await self.getModelSettings(
+            request: GRPCCore.ServerRequest(stream: request),
+            context: context
+        )
+        return GRPCCore.StreamingServerResponse(single: response)
+    }
+
+    public func setModelSettings(
+        request: GRPCCore.StreamingServerRequest<Noted_V1_SetModelSettingsRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_ModelSettings> {
+        let response = try await self.setModelSettings(
+            request: GRPCCore.ServerRequest(stream: request),
+            context: context
+        )
+        return GRPCCore.StreamingServerResponse(single: response)
+    }
+
+    public func clearModelSettings(
+        request: GRPCCore.StreamingServerRequest<Noted_V1_ClearModelSettingsRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_ModelSettings> {
+        let response = try await self.clearModelSettings(
             request: GRPCCore.ServerRequest(stream: request),
             context: context
         )
@@ -5542,6 +5815,45 @@ extension Noted_V1_AIService.SimpleServiceProtocol {
     ) async throws -> GRPCCore.ServerResponse<Noted_V1_AIFeatures> {
         return GRPCCore.ServerResponse<Noted_V1_AIFeatures>(
             message: try await self.setAIFeatures(
+                request: request.message,
+                context: context
+            ),
+            metadata: [:]
+        )
+    }
+
+    public func getModelSettings(
+        request: GRPCCore.ServerRequest<Noted_V1_GetModelSettingsRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.ServerResponse<Noted_V1_ModelSettings> {
+        return GRPCCore.ServerResponse<Noted_V1_ModelSettings>(
+            message: try await self.getModelSettings(
+                request: request.message,
+                context: context
+            ),
+            metadata: [:]
+        )
+    }
+
+    public func setModelSettings(
+        request: GRPCCore.ServerRequest<Noted_V1_SetModelSettingsRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.ServerResponse<Noted_V1_ModelSettings> {
+        return GRPCCore.ServerResponse<Noted_V1_ModelSettings>(
+            message: try await self.setModelSettings(
+                request: request.message,
+                context: context
+            ),
+            metadata: [:]
+        )
+    }
+
+    public func clearModelSettings(
+        request: GRPCCore.ServerRequest<Noted_V1_ClearModelSettingsRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.ServerResponse<Noted_V1_ModelSettings> {
+        return GRPCCore.ServerResponse<Noted_V1_ModelSettings>(
+            message: try await self.clearModelSettings(
                 request: request.message,
                 context: context
             ),
@@ -5794,6 +6106,76 @@ extension Noted_V1_AIService {
             deserializer: some GRPCCore.MessageDeserializer<Noted_V1_AIFeatures>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_AIFeatures>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "GetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > The caller's own model ("bring your own key"), for Noted Pro users. While
+        /// > it is set and the caller is Pro, their AI requests go to that endpoint
+        /// > (any OpenAI-compatible API) instead of the server's, and do not count
+        /// > against the daily cap. The key is stored encrypted and never returned.
+        /// > Without Pro a stored key is kept but not used.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_GetModelSettingsRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_GetModelSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_ModelSettings` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        func getModelSettings<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_GetModelSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_GetModelSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_ModelSettings>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "SetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Makes one tiny test call before saving: INVALID_ARGUMENT when the
+        /// > endpoint does not answer, FAILED_PRECONDITION without Pro.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_SetModelSettingsRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_SetModelSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_ModelSettings` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        func setModelSettings<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_SetModelSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_SetModelSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_ModelSettings>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "ClearModelSettings" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_ClearModelSettingsRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_ClearModelSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_ModelSettings` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        func clearModelSettings<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_ClearModelSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_ClearModelSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_ModelSettings>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result
         ) async throws -> Result where Result: Sendable
     }
 
@@ -6170,6 +6552,109 @@ extension Noted_V1_AIService {
                 onResponse: handleResponse
             )
         }
+
+        /// Call the "GetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > The caller's own model ("bring your own key"), for Noted Pro users. While
+        /// > it is set and the caller is Pro, their AI requests go to that endpoint
+        /// > (any OpenAI-compatible API) instead of the server's, and do not count
+        /// > against the daily cap. The key is stored encrypted and never returned.
+        /// > Without Pro a stored key is kept but not used.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_GetModelSettingsRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_GetModelSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_ModelSettings` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        public func getModelSettings<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_GetModelSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_GetModelSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_ModelSettings>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Noted_V1_AIService.Method.GetModelSettings.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "SetModelSettings" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Makes one tiny test call before saving: INVALID_ARGUMENT when the
+        /// > endpoint does not answer, FAILED_PRECONDITION without Pro.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_SetModelSettingsRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_SetModelSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_ModelSettings` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        public func setModelSettings<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_SetModelSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_SetModelSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_ModelSettings>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Noted_V1_AIService.Method.SetModelSettings.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "ClearModelSettings" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_ClearModelSettingsRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_ClearModelSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_ModelSettings` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        public func clearModelSettings<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_ClearModelSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_ClearModelSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_ModelSettings>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Noted_V1_AIService.Method.ClearModelSettings.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
     }
 }
 
@@ -6474,6 +6959,94 @@ extension Noted_V1_AIService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_SetAIFeaturesRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_AIFeatures>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "GetModelSettings" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > The caller's own model ("bring your own key"), for Noted Pro users. While
+    /// > it is set and the caller is Pro, their AI requests go to that endpoint
+    /// > (any OpenAI-compatible API) instead of the server's, and do not count
+    /// > against the daily cap. The key is stored encrypted and never returned.
+    /// > Without Pro a stored key is kept but not used.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Noted_V1_GetModelSettingsRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func getModelSettings<Result>(
+        request: GRPCCore.ClientRequest<Noted_V1_GetModelSettingsRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.getModelSettings(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_GetModelSettingsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_ModelSettings>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "SetModelSettings" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Makes one tiny test call before saving: INVALID_ARGUMENT when the
+    /// > endpoint does not answer, FAILED_PRECONDITION without Pro.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Noted_V1_SetModelSettingsRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func setModelSettings<Result>(
+        request: GRPCCore.ClientRequest<Noted_V1_SetModelSettingsRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.setModelSettings(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_SetModelSettingsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_ModelSettings>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ClearModelSettings" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Noted_V1_ClearModelSettingsRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func clearModelSettings<Result>(
+        request: GRPCCore.ClientRequest<Noted_V1_ClearModelSettingsRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.clearModelSettings(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_ClearModelSettingsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_ModelSettings>(),
             options: options,
             onResponse: handleResponse
         )
@@ -6824,6 +7397,106 @@ extension Noted_V1_AIService.ClientProtocol {
             metadata: metadata
         )
         return try await self.setAIFeatures(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "GetModelSettings" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > The caller's own model ("bring your own key"), for Noted Pro users. While
+    /// > it is set and the caller is Pro, their AI requests go to that endpoint
+    /// > (any OpenAI-compatible API) instead of the server's, and do not count
+    /// > against the daily cap. The key is stored encrypted and never returned.
+    /// > Without Pro a stored key is kept but not used.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func getModelSettings<Result>(
+        _ message: Noted_V1_GetModelSettingsRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Noted_V1_GetModelSettingsRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.getModelSettings(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "SetModelSettings" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Makes one tiny test call before saving: INVALID_ARGUMENT when the
+    /// > endpoint does not answer, FAILED_PRECONDITION without Pro.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func setModelSettings<Result>(
+        _ message: Noted_V1_SetModelSettingsRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Noted_V1_SetModelSettingsRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.setModelSettings(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ClearModelSettings" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func clearModelSettings<Result>(
+        _ message: Noted_V1_ClearModelSettingsRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_ModelSettings>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Noted_V1_ClearModelSettingsRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.clearModelSettings(
             request: request,
             options: options,
             onResponse: handleResponse
@@ -20305,6 +20978,32 @@ public enum Noted_V1_AccountService: Sendable {
                 type: .unary
             )
         }
+        /// Namespace for "DeleteAccount" metadata.
+        public enum DeleteAccount: Sendable {
+            /// Request type for "DeleteAccount".
+            public typealias Input = Noted_V1_DeleteAccountRequest
+            /// Response type for "DeleteAccount".
+            public typealias Output = SwiftProtobuf.Google_Protobuf_Empty
+            /// Descriptor for "DeleteAccount".
+            public static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "noted.v1.AccountService"),
+                method: "DeleteAccount",
+                type: .unary
+            )
+        }
+        /// Namespace for "VerifyPurchase" metadata.
+        public enum VerifyPurchase: Sendable {
+            /// Request type for "VerifyPurchase".
+            public typealias Input = Noted_V1_VerifyPurchaseRequest
+            /// Response type for "VerifyPurchase".
+            public typealias Output = Noted_V1_Account
+            /// Descriptor for "VerifyPurchase".
+            public static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "noted.v1.AccountService"),
+                method: "VerifyPurchase",
+                type: .unary
+            )
+        }
         /// Namespace for "GetPairing" metadata.
         public enum GetPairing: Sendable {
             /// Request type for "GetPairing".
@@ -20356,6 +21055,8 @@ public enum Noted_V1_AccountService: Sendable {
             CreateToken.descriptor,
             ListTokens.descriptor,
             RevokeToken.descriptor,
+            DeleteAccount.descriptor,
+            VerifyPurchase.descriptor,
             GetPairing.descriptor,
             ApprovePairing.descriptor,
             DenyPairing.descriptor
@@ -20555,6 +21256,49 @@ extension Noted_V1_AccountService {
             request: GRPCCore.StreamingServerRequest<Noted_V1_RevokeTokenRequest>,
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.StreamingServerResponse<SwiftProtobuf.Google_Protobuf_Empty>
+
+        /// Handle the "DeleteAccount" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Deletes the calling user and everything they own (notes, tasks, projects,
+        /// > goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+        /// > an Apple ID is linked, the server also revokes its Sign in with Apple
+        /// > grant where it can. Every token stops working.
+        ///
+        /// - Parameters:
+        ///   - request: A streaming request of `Noted_V1_DeleteAccountRequest` messages.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A streaming response of `SwiftProtobuf.Google_Protobuf_Empty` messages.
+        func deleteAccount(
+            request: GRPCCore.StreamingServerRequest<Noted_V1_DeleteAccountRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.StreamingServerResponse<SwiftProtobuf.Google_Protobuf_Empty>
+
+        /// Handle the "VerifyPurchase" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Records a Noted Pro purchase made in the App Store: signed_transaction is
+        /// > StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+        /// > signature, the bundle id and the product id, and on success marks the
+        /// > user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+        /// > FAILED_PRECONDITION for a refunded (revoked) transaction.
+        ///
+        /// - Parameters:
+        ///   - request: A streaming request of `Noted_V1_VerifyPurchaseRequest` messages.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A streaming response of `Noted_V1_Account` messages.
+        func verifyPurchase(
+            request: GRPCCore.StreamingServerRequest<Noted_V1_VerifyPurchaseRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_Account>
 
         /// Handle the "GetPairing" method.
         ///
@@ -20786,6 +21530,49 @@ extension Noted_V1_AccountService {
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.ServerResponse<SwiftProtobuf.Google_Protobuf_Empty>
 
+        /// Handle the "DeleteAccount" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Deletes the calling user and everything they own (notes, tasks, projects,
+        /// > goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+        /// > an Apple ID is linked, the server also revokes its Sign in with Apple
+        /// > grant where it can. Every token stops working.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_DeleteAccountRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A response containing a single `SwiftProtobuf.Google_Protobuf_Empty` message.
+        func deleteAccount(
+            request: GRPCCore.ServerRequest<Noted_V1_DeleteAccountRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.ServerResponse<SwiftProtobuf.Google_Protobuf_Empty>
+
+        /// Handle the "VerifyPurchase" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Records a Noted Pro purchase made in the App Store: signed_transaction is
+        /// > StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+        /// > signature, the bundle id and the product id, and on success marks the
+        /// > user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+        /// > FAILED_PRECONDITION for a refunded (revoked) transaction.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_VerifyPurchaseRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A response containing a single `Noted_V1_Account` message.
+        func verifyPurchase(
+            request: GRPCCore.ServerRequest<Noted_V1_VerifyPurchaseRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.ServerResponse<Noted_V1_Account>
+
         /// Handle the "GetPairing" method.
         ///
         /// > Source IDL Documentation:
@@ -21014,6 +21801,49 @@ extension Noted_V1_AccountService {
             context: GRPCCore.ServerContext
         ) async throws -> SwiftProtobuf.Google_Protobuf_Empty
 
+        /// Handle the "DeleteAccount" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Deletes the calling user and everything they own (notes, tasks, projects,
+        /// > goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+        /// > an Apple ID is linked, the server also revokes its Sign in with Apple
+        /// > grant where it can. Every token stops working.
+        ///
+        /// - Parameters:
+        ///   - request: A `Noted_V1_DeleteAccountRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A `SwiftProtobuf.Google_Protobuf_Empty` to respond with.
+        func deleteAccount(
+            request: Noted_V1_DeleteAccountRequest,
+            context: GRPCCore.ServerContext
+        ) async throws -> SwiftProtobuf.Google_Protobuf_Empty
+
+        /// Handle the "VerifyPurchase" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Records a Noted Pro purchase made in the App Store: signed_transaction is
+        /// > StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+        /// > signature, the bundle id and the product id, and on success marks the
+        /// > user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+        /// > FAILED_PRECONDITION for a refunded (revoked) transaction.
+        ///
+        /// - Parameters:
+        ///   - request: A `Noted_V1_VerifyPurchaseRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A `Noted_V1_Account` to respond with.
+        func verifyPurchase(
+            request: Noted_V1_VerifyPurchaseRequest,
+            context: GRPCCore.ServerContext
+        ) async throws -> Noted_V1_Account
+
         /// Handle the "GetPairing" method.
         ///
         /// > Source IDL Documentation:
@@ -21181,6 +22011,28 @@ extension Noted_V1_AccountService.StreamingServiceProtocol {
             }
         )
         router.registerHandler(
+            forMethod: Noted_V1_AccountService.Method.DeleteAccount.descriptor,
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_DeleteAccountRequest>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<SwiftProtobuf.Google_Protobuf_Empty>(),
+            handler: { request, context in
+                try await self.deleteAccount(
+                    request: request,
+                    context: context
+                )
+            }
+        )
+        router.registerHandler(
+            forMethod: Noted_V1_AccountService.Method.VerifyPurchase.descriptor,
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_VerifyPurchaseRequest>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_Account>(),
+            handler: { request, context in
+                try await self.verifyPurchase(
+                    request: request,
+                    context: context
+                )
+            }
+        )
+        router.registerHandler(
             forMethod: Noted_V1_AccountService.Method.GetPairing.descriptor,
             deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_GetPairingRequest>(),
             serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_Pairing>(),
@@ -21323,6 +22175,28 @@ extension Noted_V1_AccountService.ServiceProtocol {
         context: GRPCCore.ServerContext
     ) async throws -> GRPCCore.StreamingServerResponse<SwiftProtobuf.Google_Protobuf_Empty> {
         let response = try await self.revokeToken(
+            request: GRPCCore.ServerRequest(stream: request),
+            context: context
+        )
+        return GRPCCore.StreamingServerResponse(single: response)
+    }
+
+    public func deleteAccount(
+        request: GRPCCore.StreamingServerRequest<Noted_V1_DeleteAccountRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.StreamingServerResponse<SwiftProtobuf.Google_Protobuf_Empty> {
+        let response = try await self.deleteAccount(
+            request: GRPCCore.ServerRequest(stream: request),
+            context: context
+        )
+        return GRPCCore.StreamingServerResponse(single: response)
+    }
+
+    public func verifyPurchase(
+        request: GRPCCore.StreamingServerRequest<Noted_V1_VerifyPurchaseRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.StreamingServerResponse<Noted_V1_Account> {
+        let response = try await self.verifyPurchase(
             request: GRPCCore.ServerRequest(stream: request),
             context: context
         )
@@ -21489,6 +22363,32 @@ extension Noted_V1_AccountService.SimpleServiceProtocol {
     ) async throws -> GRPCCore.ServerResponse<SwiftProtobuf.Google_Protobuf_Empty> {
         return GRPCCore.ServerResponse<SwiftProtobuf.Google_Protobuf_Empty>(
             message: try await self.revokeToken(
+                request: request.message,
+                context: context
+            ),
+            metadata: [:]
+        )
+    }
+
+    public func deleteAccount(
+        request: GRPCCore.ServerRequest<Noted_V1_DeleteAccountRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.ServerResponse<SwiftProtobuf.Google_Protobuf_Empty> {
+        return GRPCCore.ServerResponse<SwiftProtobuf.Google_Protobuf_Empty>(
+            message: try await self.deleteAccount(
+                request: request.message,
+                context: context
+            ),
+            metadata: [:]
+        )
+    }
+
+    public func verifyPurchase(
+        request: GRPCCore.ServerRequest<Noted_V1_VerifyPurchaseRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.ServerResponse<Noted_V1_Account> {
+        return GRPCCore.ServerResponse<Noted_V1_Account>(
+            message: try await self.verifyPurchase(
                 request: request.message,
                 context: context
             ),
@@ -21764,6 +22664,59 @@ extension Noted_V1_AccountService {
             deserializer: some GRPCCore.MessageDeserializer<SwiftProtobuf.Google_Protobuf_Empty>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<SwiftProtobuf.Google_Protobuf_Empty>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "DeleteAccount" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Deletes the calling user and everything they own (notes, tasks, projects,
+        /// > goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+        /// > an Apple ID is linked, the server also revokes its Sign in with Apple
+        /// > grant where it can. Every token stops working.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_DeleteAccountRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_DeleteAccountRequest` messages.
+        ///   - deserializer: A deserializer for `SwiftProtobuf.Google_Protobuf_Empty` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        func deleteAccount<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_DeleteAccountRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_DeleteAccountRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<SwiftProtobuf.Google_Protobuf_Empty>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<SwiftProtobuf.Google_Protobuf_Empty>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "VerifyPurchase" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Records a Noted Pro purchase made in the App Store: signed_transaction is
+        /// > StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+        /// > signature, the bundle id and the product id, and on success marks the
+        /// > user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+        /// > FAILED_PRECONDITION for a refunded (revoked) transaction.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_VerifyPurchaseRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_VerifyPurchaseRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_Account` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        func verifyPurchase<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_VerifyPurchaseRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_VerifyPurchaseRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_Account>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_Account>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "GetPairing" method.
@@ -22179,6 +23132,81 @@ extension Noted_V1_AccountService {
             )
         }
 
+        /// Call the "DeleteAccount" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Deletes the calling user and everything they own (notes, tasks, projects,
+        /// > goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+        /// > an Apple ID is linked, the server also revokes its Sign in with Apple
+        /// > grant where it can. Every token stops working.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_DeleteAccountRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_DeleteAccountRequest` messages.
+        ///   - deserializer: A deserializer for `SwiftProtobuf.Google_Protobuf_Empty` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        public func deleteAccount<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_DeleteAccountRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_DeleteAccountRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<SwiftProtobuf.Google_Protobuf_Empty>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<SwiftProtobuf.Google_Protobuf_Empty>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Noted_V1_AccountService.Method.DeleteAccount.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "VerifyPurchase" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Records a Noted Pro purchase made in the App Store: signed_transaction is
+        /// > StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+        /// > signature, the bundle id and the product id, and on success marks the
+        /// > user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+        /// > FAILED_PRECONDITION for a refunded (revoked) transaction.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Noted_V1_VerifyPurchaseRequest` message.
+        ///   - serializer: A serializer for `Noted_V1_VerifyPurchaseRequest` messages.
+        ///   - deserializer: A deserializer for `Noted_V1_Account` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        public func verifyPurchase<Result>(
+            request: GRPCCore.ClientRequest<Noted_V1_VerifyPurchaseRequest>,
+            serializer: some GRPCCore.MessageSerializer<Noted_V1_VerifyPurchaseRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Noted_V1_Account>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_Account>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Noted_V1_AccountService.Method.VerifyPurchase.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
         /// Call the "GetPairing" method.
         ///
         /// > Source IDL Documentation:
@@ -22558,6 +23586,71 @@ extension Noted_V1_AccountService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_RevokeTokenRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<SwiftProtobuf.Google_Protobuf_Empty>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "DeleteAccount" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Deletes the calling user and everything they own (notes, tasks, projects,
+    /// > goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+    /// > an Apple ID is linked, the server also revokes its Sign in with Apple
+    /// > grant where it can. Every token stops working.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Noted_V1_DeleteAccountRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func deleteAccount<Result>(
+        request: GRPCCore.ClientRequest<Noted_V1_DeleteAccountRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<SwiftProtobuf.Google_Protobuf_Empty>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.deleteAccount(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_DeleteAccountRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<SwiftProtobuf.Google_Protobuf_Empty>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "VerifyPurchase" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Records a Noted Pro purchase made in the App Store: signed_transaction is
+    /// > StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+    /// > signature, the bundle id and the product id, and on success marks the
+    /// > user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+    /// > FAILED_PRECONDITION for a refunded (revoked) transaction.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Noted_V1_VerifyPurchaseRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func verifyPurchase<Result>(
+        request: GRPCCore.ClientRequest<Noted_V1_VerifyPurchaseRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_Account>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.verifyPurchase(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Noted_V1_VerifyPurchaseRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Noted_V1_Account>(),
             options: options,
             onResponse: handleResponse
         )
@@ -22965,6 +24058,79 @@ extension Noted_V1_AccountService.ClientProtocol {
             metadata: metadata
         )
         return try await self.revokeToken(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "DeleteAccount" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Deletes the calling user and everything they own (notes, tasks, projects,
+    /// > goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+    /// > an Apple ID is linked, the server also revokes its Sign in with Apple
+    /// > grant where it can. Every token stops working.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func deleteAccount<Result>(
+        _ message: Noted_V1_DeleteAccountRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<SwiftProtobuf.Google_Protobuf_Empty>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Noted_V1_DeleteAccountRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.deleteAccount(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "VerifyPurchase" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Records a Noted Pro purchase made in the App Store: signed_transaction is
+    /// > StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+    /// > signature, the bundle id and the product id, and on success marks the
+    /// > user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+    /// > FAILED_PRECONDITION for a refunded (revoked) transaction.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func verifyPurchase<Result>(
+        _ message: Noted_V1_VerifyPurchaseRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Noted_V1_Account>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Noted_V1_VerifyPurchaseRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.verifyPurchase(
             request: request,
             options: options,
             onResponse: handleResponse

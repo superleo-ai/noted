@@ -11,7 +11,7 @@ struct ChangesScreen: View {
     @State private var undoing: Noted_V1_Change?
 
     var body: some View {
-        List {
+        List { Group {
             if !loaded {
                 Section { ProgressView().frame(maxWidth: .infinity).padding(.vertical, 22) }
             } else if changes.isEmpty {
@@ -34,8 +34,9 @@ struct ChangesScreen: View {
                     }
                 }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .navigationTitle("AI 的改动记录")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

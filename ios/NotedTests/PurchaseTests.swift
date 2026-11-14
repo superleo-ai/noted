@@ -3,12 +3,12 @@ import StoreKitTest
 import XCTest
 @testable import Noted
 
-/// Buys, refunds and lets a subscription lapse, against StoreKit's local test store.
+/// Buys, refunds and restores Noted Pro (one non-consumable), against StoreKit's local test store.
 @MainActor
 final class PurchaseTests: XCTestCase {
     private var store: SKTestSession!
 
-    /// StoreKit reports a refund or an expiry a moment after it happens.
+    /// StoreKit reports a refund a moment after it happens.
     private func settle(_ pro: Pro, isPro expected: Bool) async {
         for _ in 0..<30 {
             await pro.refresh()
@@ -29,71 +29,81 @@ final class PurchaseTests: XCTestCase {
         store.clearTransactions()
     }
 
-    func testTheTwoPlansAreOffered() async {
+    func testOneLifetimePurchaseIsOffered() async throws {
         let pro = Pro()
         await pro.load()
-        XCTAssertEqual(Set(pro.products.map(\.id)), [Pro.yearlyID, Pro.monthlyID])
+        let p = try XCTUnwrap(pro.product)
+        XCTAssertEqual(p.id, Pro.lifetimeID)
+        XCTAssertEqual(p.type, .nonConsumable)
+        XCTAssertEqual(p.price, Decimal(string: "19.99"))
         XCTAssertFalse(pro.isPro)
-        let prices = pro.products.map { "\($0.id)=\($0.price)" }.joined(separator: ", ")
-        XCTAssertNotNil(pro.yearlySaving, "twelve months cost more than a year (\(prices))")
-        XCTAssertEqual(pro.yearlySaving, 32, prices)   // 98 against 12 × 12
     }
 
-    func testBuyingTheYearlyPlanTurnsProOn() async throws {
+    func testBuyingTurnsProOnAndTellsTheServer() async throws {
         let pro = Pro()
+        var sent: [String] = []
+        pro.verifyOnServer = { jws in sent.append(jws); return true }
         await pro.load()
-        await pro.buy(try XCTUnwrap(pro.yearly))
+        await pro.buy()
         XCTAssertTrue(pro.isPro)
+        XCTAssertTrue(pro.owned)
         XCTAssertNil(pro.message)
+        XCTAssertEqual(sent.count, 1, "the signed transaction goes to VerifyPurchase")
+        XCTAssertEqual(sent.first?.split(separator: ".").count, 3, "a compact JWS")
+        XCTAssertTrue(pro.grantedByServer)
     }
 
-    func testBuyingTheMonthlyPlanTurnsProOn() async throws {
+    func testAServerThatRefusesKeepsTheLocalPurchase() async throws {
         let pro = Pro()
+        pro.verifyOnServer = { _ in throw CancellationError() }
         await pro.load()
-        await pro.buy(try XCTUnwrap(pro.monthly))
-        XCTAssertTrue(pro.isPro)
+        await pro.buy()
+        XCTAssertTrue(pro.isPro, "customizing still unlocks on the device")
+        XCTAssertFalse(pro.grantedByServer, "AI waits for the server")
+        XCTAssertNotNil(pro.message)
     }
 
     func testARefundTurnsProOff() async throws {
         let pro = Pro()
         await pro.load()
-        await pro.buy(try XCTUnwrap(pro.yearly))
+        await pro.buy()
         XCTAssertTrue(pro.isPro)
         let t = try XCTUnwrap(store.allTransactions().first)
         try store.refundTransaction(identifier: t.identifier)
         await settle(pro, isPro: false)
         XCTAssertFalse(pro.isPro, "a refunded purchase no longer unlocks anything")
+        let jws = await pro.entitlement()
+        XCTAssertNil(jws)
     }
 
-    /// StoreKit's test store renews on `expireSubscription` whatever the billing-retry setting, so the
-    /// states that must end access are checked directly.
-    func testOnlyAnActiveOrGracePeriodSubscriptionUnlocksPro() {
-        XCTAssertTrue(Pro.unlocks(.subscribed))
-        XCTAssertTrue(Pro.unlocks(.inGracePeriod), "a payment problem inside the grace period keeps access")
-        XCTAssertFalse(Pro.unlocks(.inBillingRetryPeriod), "a declined renewal with no grace period ends access")
-        XCTAssertFalse(Pro.unlocks(.expired))
-        XCTAssertFalse(Pro.unlocks(.revoked))
-    }
-
-    /// With renewals working, the subscription simply carries on.
-    func testASubscriptionThatRenewsStaysPro() async throws {
-        let pro = Pro()
-        await pro.load()
-        await pro.buy(try XCTUnwrap(pro.monthly))
-        try store.expireSubscription(productIdentifier: Pro.monthlyID)
-        await pro.refresh()
-        XCTAssertTrue(pro.isPro)
-    }
-
-    func testRestoringFindsAnEarlierPurchase() async throws {
+    func testRestoringFindsAnEarlierPurchaseAndSendsIt() async throws {
         let first = Pro()
         await first.load()
-        await first.buy(try XCTUnwrap(first.yearly))
+        await first.buy()
         let second = Pro()      // a fresh install on the same Apple ID
+        var sent = 0
+        second.verifyOnServer = { _ in sent += 1; return true }
         await second.refresh()
         XCTAssertTrue(second.isPro)
         await second.restore()
         XCTAssertTrue(second.isPro)
+        XCTAssertEqual(sent, 1)
+    }
+
+    func testLaunchSyncSendsThePurchaseOnceWhenTheServerDoesNotKnow() async throws {
+        let first = Pro()
+        await first.load()
+        await first.buy()
+        let pro = Pro()
+        var sent = 0
+        pro.verifyOnServer = { _ in sent += 1; return true }
+        await pro.syncIfNeeded(serverPro: true)
+        XCTAssertEqual(sent, 0, "the server already knows")
+        await pro.syncIfNeeded(serverPro: false)
+        XCTAssertTrue(pro.grantedByServer, "the server accepted it")
+        await pro.syncIfNeeded(serverPro: false)
+        XCTAssertEqual(sent, 1, "once per launch")
+        XCTAssertTrue(pro.isPro, "the device entitlement still unlocks Pro")
     }
 
     func testRestoringWithNothingBoughtSaysSo() async {
@@ -103,11 +113,11 @@ final class PurchaseTests: XCTestCase {
         XCTAssertEqual(pro.message, "没有找到可恢复的购买")
     }
 
-    func testACancelledPurchaseLeavesThingsAlone() async throws {
+    func testAFailedPurchaseLeavesThingsAlone() async throws {
         try await store.setSimulatedError(.generic(.unknown), forAPI: .purchase)
         let pro = Pro()
         await pro.load()
-        await pro.buy(try XCTUnwrap(pro.yearly))
+        await pro.buy()
         XCTAssertFalse(pro.isPro)
         XCTAssertNotNil(pro.message, "the failure is shown")
     }

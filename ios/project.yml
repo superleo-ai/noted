@@ -8,8 +8,8 @@ settings:
   base:
     DEVELOPMENT_TEAM: NUDL4XSA6J
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "3"
 packages:
   GRPCSwift:
     url: https://github.com/grpc/grpc-swift-2.git
@@ -74,7 +74,8 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Noted
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        # Upright on phones (OrientationDelegate narrows it at run time); any way on an opened iPhone Duo.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UIUserInterfaceStyle: Light
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: 把笔记保存为图片
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: 连接你在局域网里运行的 noted 服务
@@ -86,6 +87,8 @@ targets:
       properties:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Only HTTPS/TLS through the system and swift-nio-ssl: exempt, no export paperwork.
+        ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
           - CFBundleURLName: cn.superleo.noted
             CFBundleURLSchemes: [noted]
@@ -150,6 +153,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Noted
         INFOPLIST_KEY_WKCompanionAppBundleIdentifier: cn.superleo.noted
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         WATCHOS_DEPLOYMENT_TARGET: "11.0"
   NotedWatchWidgets:
     type: app-extension

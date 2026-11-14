@@ -60,17 +60,17 @@ struct CompassEditView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section("拒绝的生活") {
+            List { Group {
+                Section {
                     TextField("一句话", text: $antiVision, axis: .vertical).accessibilityIdentifier("compass-anti")
-                }
-                Section("正在建造") {
+                } header: { SectionLabel("拒绝的生活") }
+                Section {
                     TextField("一句话", text: $vision, axis: .vertical).accessibilityIdentifier("compass-vision")
-                }
-                Section("我是那种……的人") {
+                } header: { SectionLabel("正在建造") }
+                Section {
                     TextField("我是那种……的人", text: $identity, axis: .vertical).accessibilityIdentifier("compass-identity")
-                }
-                Section("不牺牲") {
+                } header: { SectionLabel("我是那种……的人") }
+                Section {
                     ForEach(constraints.indices, id: \.self) { i in
                         TextField("不牺牲", text: $constraints[i], axis: .vertical)
                     }
@@ -79,18 +79,19 @@ struct CompassEditView: View {
                         Label("添加", systemImage: "plus.circle.fill")
                     }
                     .accessibilityIdentifier("compass-add-constraint")
-                }
-            }
+                } header: { SectionLabel("不牺牲") }
+            }.classicRowInsets() }
             .listStyle(.insetGrouped)
+            .contentMargins(.top, 0, for: .scrollContent)
             .navigationTitle("罗盘")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }.plainBar()
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完成") { save() }
                         .disabled(saving)
                         .accessibilityIdentifier("compass-save")
-                }
+                }.plainBar()
             }
             .onAppear(perform: fill)
         }

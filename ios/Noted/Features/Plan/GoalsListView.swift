@@ -19,7 +19,7 @@ struct GoalsListView: View {
     var body: some View {
         let goals = data.standaloneGoals
         let objectives = data.visibleObjectives
-        List {
+        List { Group {
             Section {
                 CompassCard().planCardRow()
             }
@@ -44,7 +44,7 @@ struct GoalsListView: View {
                         }
                 }
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
         .refreshable { await data.refreshGoals() }
         .navigationTitle("目标")
@@ -55,7 +55,7 @@ struct GoalsListView: View {
                 }
                 .accessibilityLabel("新建目标")
                 .accessibilityIdentifier("goals-new")
-            }
+            }.plainBar()
         }
         .confirmationDialog("删除目标？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                             titleVisibility: .visible, presenting: deleting) { p in

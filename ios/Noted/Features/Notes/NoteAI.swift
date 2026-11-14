@@ -47,6 +47,7 @@ extension AppData {
     func noteAssist(_ note: Noted_V1_Note) async -> NoteAssist? {
         let key = NoteAssist.key(note)
         if let hit = NoteAssistCache.entries[note.id], hit.key == key { return hit }
+        guard await AIConsent.shared.isGranted(session.api) else { return nil }
         guard await aiMayRead(note.space == .work ? .work : .life), !Task.isCancelled else { return nil }
         async let s = summarizeNote(note.id)
         async let t = suggestTags(note.id)

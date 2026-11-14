@@ -438,6 +438,32 @@ CREATE TABLE IF NOT EXISTS oauth_codes (
 	label          TEXT NOT NULL,
 	expires_ms     INTEGER NOT NULL
 );
+
+-- Noted Pro bought in the App Store: one purchase belongs to one user.
+CREATE TABLE IF NOT EXISTS purchases (
+	original_transaction_id TEXT PRIMARY KEY,
+	user_id                 TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	product_id              TEXT NOT NULL,
+	environment             TEXT NOT NULL,
+	created_ms              INTEGER NOT NULL
+);
+-- Language-model calls per user per UTC day (ai.daily_limit).
+CREATE TABLE IF NOT EXISTS ai_usage (
+	user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	day     TEXT NOT NULL,
+	n       INTEGER NOT NULL,
+	PRIMARY KEY (user_id, day)
+);
+-- A Noted Pro user's own model endpoint ("bring your own key"). The API key
+-- is sealed with the server's secret key; key_hint is its masked form.
+CREATE TABLE IF NOT EXISTS ai_models (
+	user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	base_url   TEXT NOT NULL,
+	model      TEXT NOT NULL,
+	key_sealed BLOB NOT NULL,
+	key_hint   TEXT NOT NULL,
+	updated_ms INTEGER NOT NULL
+);
 `
 
 func (s *Store) migrate(ctx context.Context) error {

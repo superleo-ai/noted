@@ -22,9 +22,9 @@ struct ReviewView: View {
             case .loading where review == nil:
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).background(.groupedBackground)
             case .off:
-                List { Section { EmptyState(text: "每周回顾未开启") } }
+                List { Group { Section { EmptyState(text: "每周回顾未开启") } }.classicRowInsets() }
             case .failed where review == nil:
-                List { Section { EmptyState(text: "没有读到回顾") } }
+                List { Group { Section { EmptyState(text: "没有读到回顾") } }.classicRowInsets() }
             default:
                 if let review { content(review) }
             }
@@ -41,7 +41,7 @@ struct ReviewView: View {
                         .disabled(ReviewWeek.isCurrent(weekOf))
                         .accessibilityLabel("下一周")
                         .accessibilityIdentifier("review-next")
-                }
+                }.plainBar()
             }
         }
         .task(id: "\(Int(weekOf.timeIntervalSince1970))-\(session.mode.rawValue)") { await load() }
@@ -51,7 +51,7 @@ struct ReviewView: View {
     // MARK: page
 
     private func content(_ r: Noted_V1_WeeklyReview) -> some View {
-        List {
+        List { Group {
             Section {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(ReviewWeek.label(from: r.from.date, to: r.to.date))
@@ -71,7 +71,7 @@ struct ReviewView: View {
             time(r)
             carried(r)
             nextWeek(r)
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
         .listSectionSpacing(20)
     }
@@ -80,10 +80,10 @@ struct ReviewView: View {
     private func compass(_ r: Noted_V1_WeeklyReview) -> some View {
         let c = r.compass
         if r.hasCompass, c.version > 0, !(c.vision.isEmpty && c.antiVision.isEmpty) {
-            Section("方向") {
+            Section {
                 if !c.vision.isEmpty { compassRow("想要的", c.vision, tint: .success) }
                 if !c.antiVision.isEmpty { compassRow("拒绝的", c.antiVision, tint: .danger) }
-            }
+            } header: { SectionLabel("方向") }
         }
     }
 
@@ -99,7 +99,7 @@ struct ReviewView: View {
     @ViewBuilder
     private func goals(_ r: Noted_V1_WeeklyReview) -> some View {
         if !r.goals.isEmpty {
-            Section("目标") {
+            Section {
                 ForEach(r.goals, id: \.id) { g in
                     Button { router.push(.goal(g.id)) } label: {
                         HStack(spacing: 10) {
@@ -115,7 +115,7 @@ struct ReviewView: View {
                     .buttonStyle(.plain)
                     .accessibilityElement(children: .combine)
                 }
-            }
+            } header: { SectionLabel("目标") }
         }
     }
 
@@ -138,7 +138,7 @@ struct ReviewView: View {
                     .accessibilityElement(children: .combine)
                 }
             } header: {
-                Text("言行")
+                SectionLabel("言行")
             } footer: {
                 if !b.unlinked.isEmpty {
                     Text(b.unlinked.prefix(3).map { "\($0.title) \(Fmt.duration(minutes: Int($0.minutes)))" }.joined(separator: " · "))
@@ -172,7 +172,7 @@ struct ReviewView: View {
     @ViewBuilder
     private func carried(_ r: Noted_V1_WeeklyReview) -> some View {
         if !r.carriedTasks.isEmpty {
-            Section("没做完的") {
+            Section {
                 ForEach(r.carriedTasks, id: \.id) { t in
                     Button { router.push(.todo(t.id)) } label: {
                         HStack(spacing: 12) {
@@ -193,7 +193,7 @@ struct ReviewView: View {
                     .buttonStyle(.plain)
                     .accessibilityElement(children: .combine)
                 }
-            }
+            } header: { SectionLabel("没做完的") }
         }
     }
 

@@ -23,38 +23,64 @@ struct CalendarScreen: View {
     @State private var month = Date.now.startOfMonth
     @State private var scrollRequest = 0
     @State private var deleting: Noted_V1_Event?
+    @Environment(\.wideRoot) private var wide
 
     var body: some View {
         TimelineView(.everyMinute) { ctx in
             let now = ctx.date
-            VStack(spacing: 0) {
-                header(now: now)
-                content(now: now)
+            if wide && mode == .month {
+                // Wide (an opened iPhone Duo): the month grid and the selected day's list side by side.
+                HStack(spacing: 0) {
+                    VStack(spacing: 0) {
+                        header(now: now)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity)
+                    Rectangle().fill(.hairline).frame(width: 0.5)
+                    content(now: now).frame(maxWidth: .infinity)
+                }
+            } else {
+                VStack(spacing: 0) {
+                    header(now: now)
+                    content(now: now)
+                }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) { bar }
         .background(Color.white)
         .navigationTitle("日历")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.white, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("今天") { goToToday() }
-                    .accessibilityIdentifier("calendar-today")
-            }
-            ToolbarItem(placement: .principal) {
-                Picker("视图", selection: Binding(get: { mode }, set: { setMode($0) })) {
-                    ForEach(CalendarMode.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 150)
-                .accessibilityIdentifier("calendar-mode")
-            }
-            ToolbarItem(placement: .topBarTrailing) { SpaceFilterMenu() }
-        }
+        // The design's bar: 今天 · a gray 日/周/月 switch · the space filter, drawn here because a
+        // segmented control in the system bar gets a glass capsule.
+        .toolbar(.hidden, for: .navigationBar)
         .confirmEventDelete($deleting)
         .task(id: loadKey) { await load() }
         .onChange(of: router.scrollToTopRequest) { goToToday() }
+    }
+
+    // MARK: bar
+
+    private var bar: some View {
+        ZStack {
+            HStack {
+                Button("今天") { goToToday() }
+                    .font(.body)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityIdentifier("calendar-today")
+                Spacer()
+                SpaceFilterMenu()
+                    .font(.system(size: 22))
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .padding(.horizontal, 8)
+            Picker("视图", selection: Binding(get: { mode }, set: { setMode($0) })) {
+                ForEach(CalendarMode.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented).classicSegmented()
+            .frame(width: 150)
+            .accessibilityIdentifier("calendar-mode")
+        }
+        .frame(height: 44)
+        .background(Self.barColor.ignoresSafeArea(edges: .top))
     }
 
     // MARK: header
@@ -120,9 +146,12 @@ struct CalendarScreen: View {
                 .onHorizontalSwipe { step($0) }
             }
         }
-        .background(Color.white)
+        .background(mode == .month ? Color.white : Self.barColor)
         .overlay(alignment: .bottom) { Rectangle().fill(.hairline).frame(height: 0.5) }
     }
+
+    /// The design's bar ground (`--navbg` on white): the bar and the week strip above the grid.
+    static let barColor = Color(hex: 0xF7F7FA)
 
     // MARK: content
 

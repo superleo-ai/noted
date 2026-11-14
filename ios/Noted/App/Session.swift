@@ -17,9 +17,15 @@ final class Session {
     var connecting = false
     var aiChat = false
     var aiNoteTools = false
+    /// AI is on on the server but this account is not Noted Pro there: the entry points show
+    /// locked and open the Pro screen instead.
+    var aiLocked: Bool { aiChat && pro.serverKnown && !pro.grantedByServer }
 
     /// The hosted service: the app opens pointing here, so signing in with Apple is one tap.
-    static let hostedHost = "noted.superleo.cn"
+    static let hostedHost = "noted.superleo.app"
+    /// Where the hosted service used to live. It still forwards to the new host; a saved
+    /// connection to it is moved over at launch.
+    static let legacyHostedHost = "noted.superleo.cn"
 
     var host: String
     var port: String
@@ -33,9 +39,14 @@ final class Session {
         if host.isEmpty, d.object(forKey: "port") == nil {
             host = Session.hostedHost; port = "443"; tls = true
         }
+        if host == Session.legacyHostedHost {
+            host = Session.hostedHost
+            d.set(host, forKey: "host")
+        }
         if let raw = d.string(forKey: "mode"), let m = Mode(rawValue: raw) { mode = m }
         // The last theme seen, so the app opens in it before the server answers.
         if let raw = d.data(forKey: "ui.theme"), let t = try? JSONDecoder().decode(ThemeSpec.self, from: raw) { theme = t }
+        pro.verifyOnServer = { [weak self] jws in try await self?.verifyPurchase(jws) ?? false }
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
         if env["NOTED_RESET"] == "1" {
@@ -77,10 +88,19 @@ final class Session {
         aiNoteTools = f?.noteTools ?? true
     }
 
-    /// The server can grant Pro outside the App Store; this is where the app learns of it.
+    /// The server can grant Pro outside the App Store; this is where the app learns of it. When
+    /// this Apple ID bought Pro but the account does not know yet, the purchase is sent along.
     func refreshAccount() async {
         guard let api, let a = try? await api.account.getAccount(Noted_V1_GetAccountRequest()) else { return }
-        pro.setServerGrant(a.pro)
+        await pro.syncIfNeeded(serverPro: a.pro)
+    }
+
+    /// VerifyPurchase: the server checks Apple's signature and makes this account Pro.
+    func verifyPurchase(_ jws: String) async throws -> Bool {
+        guard let api else { return false }
+        var r = Noted_V1_VerifyPurchaseRequest()
+        r.signedTransaction = jws
+        return try await api.account.verifyPurchase(r).pro
     }
 
     /// Theme and layout live on the server so every device shows the same app.

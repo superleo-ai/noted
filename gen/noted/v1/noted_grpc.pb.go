@@ -960,17 +960,20 @@ var CalendarService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	AIService_GetStatus_FullMethodName     = "/noted.v1.AIService/GetStatus"
-	AIService_Ask_FullMethodName           = "/noted.v1.AIService/Ask"
-	AIService_SummarizeNote_FullMethodName = "/noted.v1.AIService/SummarizeNote"
-	AIService_SuggestTags_FullMethodName   = "/noted.v1.AIService/SuggestTags"
-	AIService_DailyBriefing_FullMethodName = "/noted.v1.AIService/DailyBriefing"
-	AIService_PlanFromText_FullMethodName  = "/noted.v1.AIService/PlanFromText"
-	AIService_ExtractTasks_FullMethodName  = "/noted.v1.AIService/ExtractTasks"
-	AIService_GetAIAccess_FullMethodName   = "/noted.v1.AIService/GetAIAccess"
-	AIService_SetAIAccess_FullMethodName   = "/noted.v1.AIService/SetAIAccess"
-	AIService_GetAIFeatures_FullMethodName = "/noted.v1.AIService/GetAIFeatures"
-	AIService_SetAIFeatures_FullMethodName = "/noted.v1.AIService/SetAIFeatures"
+	AIService_GetStatus_FullMethodName          = "/noted.v1.AIService/GetStatus"
+	AIService_Ask_FullMethodName                = "/noted.v1.AIService/Ask"
+	AIService_SummarizeNote_FullMethodName      = "/noted.v1.AIService/SummarizeNote"
+	AIService_SuggestTags_FullMethodName        = "/noted.v1.AIService/SuggestTags"
+	AIService_DailyBriefing_FullMethodName      = "/noted.v1.AIService/DailyBriefing"
+	AIService_PlanFromText_FullMethodName       = "/noted.v1.AIService/PlanFromText"
+	AIService_ExtractTasks_FullMethodName       = "/noted.v1.AIService/ExtractTasks"
+	AIService_GetAIAccess_FullMethodName        = "/noted.v1.AIService/GetAIAccess"
+	AIService_SetAIAccess_FullMethodName        = "/noted.v1.AIService/SetAIAccess"
+	AIService_GetAIFeatures_FullMethodName      = "/noted.v1.AIService/GetAIFeatures"
+	AIService_SetAIFeatures_FullMethodName      = "/noted.v1.AIService/SetAIFeatures"
+	AIService_GetModelSettings_FullMethodName   = "/noted.v1.AIService/GetModelSettings"
+	AIService_SetModelSettings_FullMethodName   = "/noted.v1.AIService/SetModelSettings"
+	AIService_ClearModelSettings_FullMethodName = "/noted.v1.AIService/ClearModelSettings"
 )
 
 // AIServiceClient is the client API for AIService service.
@@ -1001,6 +1004,16 @@ type AIServiceClient interface {
 	// answers FAILED_PRECONDITION (or, for suggestions, lists nothing).
 	GetAIFeatures(ctx context.Context, in *GetAIFeaturesRequest, opts ...grpc.CallOption) (*AIFeatures, error)
 	SetAIFeatures(ctx context.Context, in *SetAIFeaturesRequest, opts ...grpc.CallOption) (*AIFeatures, error)
+	// The caller's own model ("bring your own key"), for Noted Pro users. While
+	// it is set and the caller is Pro, their AI requests go to that endpoint
+	// (any OpenAI-compatible API) instead of the server's, and do not count
+	// against the daily cap. The key is stored encrypted and never returned.
+	// Without Pro a stored key is kept but not used.
+	GetModelSettings(ctx context.Context, in *GetModelSettingsRequest, opts ...grpc.CallOption) (*ModelSettings, error)
+	// Makes one tiny test call before saving: INVALID_ARGUMENT when the
+	// endpoint does not answer, FAILED_PRECONDITION without Pro.
+	SetModelSettings(ctx context.Context, in *SetModelSettingsRequest, opts ...grpc.CallOption) (*ModelSettings, error)
+	ClearModelSettings(ctx context.Context, in *ClearModelSettingsRequest, opts ...grpc.CallOption) (*ModelSettings, error)
 }
 
 type aIServiceClient struct {
@@ -1121,6 +1134,36 @@ func (c *aIServiceClient) SetAIFeatures(ctx context.Context, in *SetAIFeaturesRe
 	return out, nil
 }
 
+func (c *aIServiceClient) GetModelSettings(ctx context.Context, in *GetModelSettingsRequest, opts ...grpc.CallOption) (*ModelSettings, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModelSettings)
+	err := c.cc.Invoke(ctx, AIService_GetModelSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aIServiceClient) SetModelSettings(ctx context.Context, in *SetModelSettingsRequest, opts ...grpc.CallOption) (*ModelSettings, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModelSettings)
+	err := c.cc.Invoke(ctx, AIService_SetModelSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aIServiceClient) ClearModelSettings(ctx context.Context, in *ClearModelSettingsRequest, opts ...grpc.CallOption) (*ModelSettings, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModelSettings)
+	err := c.cc.Invoke(ctx, AIService_ClearModelSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AIServiceServer is the server API for AIService service.
 // All implementations must embed UnimplementedAIServiceServer
 // for forward compatibility.
@@ -1149,6 +1192,16 @@ type AIServiceServer interface {
 	// answers FAILED_PRECONDITION (or, for suggestions, lists nothing).
 	GetAIFeatures(context.Context, *GetAIFeaturesRequest) (*AIFeatures, error)
 	SetAIFeatures(context.Context, *SetAIFeaturesRequest) (*AIFeatures, error)
+	// The caller's own model ("bring your own key"), for Noted Pro users. While
+	// it is set and the caller is Pro, their AI requests go to that endpoint
+	// (any OpenAI-compatible API) instead of the server's, and do not count
+	// against the daily cap. The key is stored encrypted and never returned.
+	// Without Pro a stored key is kept but not used.
+	GetModelSettings(context.Context, *GetModelSettingsRequest) (*ModelSettings, error)
+	// Makes one tiny test call before saving: INVALID_ARGUMENT when the
+	// endpoint does not answer, FAILED_PRECONDITION without Pro.
+	SetModelSettings(context.Context, *SetModelSettingsRequest) (*ModelSettings, error)
+	ClearModelSettings(context.Context, *ClearModelSettingsRequest) (*ModelSettings, error)
 	mustEmbedUnimplementedAIServiceServer()
 }
 
@@ -1191,6 +1244,15 @@ func (UnimplementedAIServiceServer) GetAIFeatures(context.Context, *GetAIFeature
 }
 func (UnimplementedAIServiceServer) SetAIFeatures(context.Context, *SetAIFeaturesRequest) (*AIFeatures, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAIFeatures not implemented")
+}
+func (UnimplementedAIServiceServer) GetModelSettings(context.Context, *GetModelSettingsRequest) (*ModelSettings, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetModelSettings not implemented")
+}
+func (UnimplementedAIServiceServer) SetModelSettings(context.Context, *SetModelSettingsRequest) (*ModelSettings, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetModelSettings not implemented")
+}
+func (UnimplementedAIServiceServer) ClearModelSettings(context.Context, *ClearModelSettingsRequest) (*ModelSettings, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClearModelSettings not implemented")
 }
 func (UnimplementedAIServiceServer) mustEmbedUnimplementedAIServiceServer() {}
 func (UnimplementedAIServiceServer) testEmbeddedByValue()                   {}
@@ -1411,6 +1473,60 @@ func _AIService_SetAIFeatures_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AIService_GetModelSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetModelSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AIServiceServer).GetModelSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AIService_GetModelSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIServiceServer).GetModelSettings(ctx, req.(*GetModelSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AIService_SetModelSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetModelSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AIServiceServer).SetModelSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AIService_SetModelSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIServiceServer).SetModelSettings(ctx, req.(*SetModelSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AIService_ClearModelSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClearModelSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AIServiceServer).ClearModelSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AIService_ClearModelSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIServiceServer).ClearModelSettings(ctx, req.(*ClearModelSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AIService_ServiceDesc is the grpc.ServiceDesc for AIService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1461,6 +1577,18 @@ var AIService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetAIFeatures",
 			Handler:    _AIService_SetAIFeatures_Handler,
+		},
+		{
+			MethodName: "GetModelSettings",
+			Handler:    _AIService_GetModelSettings_Handler,
+		},
+		{
+			MethodName: "SetModelSettings",
+			Handler:    _AIService_SetModelSettings_Handler,
+		},
+		{
+			MethodName: "ClearModelSettings",
+			Handler:    _AIService_ClearModelSettings_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -4539,6 +4667,8 @@ const (
 	AccountService_CreateToken_FullMethodName      = "/noted.v1.AccountService/CreateToken"
 	AccountService_ListTokens_FullMethodName       = "/noted.v1.AccountService/ListTokens"
 	AccountService_RevokeToken_FullMethodName      = "/noted.v1.AccountService/RevokeToken"
+	AccountService_DeleteAccount_FullMethodName    = "/noted.v1.AccountService/DeleteAccount"
+	AccountService_VerifyPurchase_FullMethodName   = "/noted.v1.AccountService/VerifyPurchase"
 	AccountService_GetPairing_FullMethodName       = "/noted.v1.AccountService/GetPairing"
 	AccountService_ApprovePairing_FullMethodName   = "/noted.v1.AccountService/ApprovePairing"
 	AccountService_DenyPairing_FullMethodName      = "/noted.v1.AccountService/DenyPairing"
@@ -4571,6 +4701,17 @@ type AccountServiceClient interface {
 	// the token making the call is allowed. NOT_FOUND for an unknown id or one
 	// that belongs to someone else.
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Deletes the calling user and everything they own (notes, tasks, projects,
+	// goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+	// an Apple ID is linked, the server also revokes its Sign in with Apple
+	// grant where it can. Every token stops working.
+	DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Records a Noted Pro purchase made in the App Store: signed_transaction is
+	// StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+	// signature, the bundle id and the product id, and on success marks the
+	// user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+	// FAILED_PRECONDITION for a refunded (revoked) transaction.
+	VerifyPurchase(ctx context.Context, in *VerifyPurchaseRequest, opts ...grpc.CallOption) (*Account, error)
 	// Pairing a client that signs in through the browser (MCP OAuth, e.g. Claude
 	// Code): the server's sign-in page shows a code and a QR code
 	// (noted://pair?code=...&server=...), and the signed-in App approves it,
@@ -4689,6 +4830,26 @@ func (c *accountServiceClient) RevokeToken(ctx context.Context, in *RevokeTokenR
 	return out, nil
 }
 
+func (c *accountServiceClient) DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AccountService_DeleteAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) VerifyPurchase(ctx context.Context, in *VerifyPurchaseRequest, opts ...grpc.CallOption) (*Account, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Account)
+	err := c.cc.Invoke(ctx, AccountService_VerifyPurchase_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *accountServiceClient) GetPairing(ctx context.Context, in *GetPairingRequest, opts ...grpc.CallOption) (*Pairing, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Pairing)
@@ -4746,6 +4907,17 @@ type AccountServiceServer interface {
 	// the token making the call is allowed. NOT_FOUND for an unknown id or one
 	// that belongs to someone else.
 	RevokeToken(context.Context, *RevokeTokenRequest) (*emptypb.Empty, error)
+	// Deletes the calling user and everything they own (notes, tasks, projects,
+	// goals, schedule, time, tokens, Apple link, AI history). Irreversible. When
+	// an Apple ID is linked, the server also revokes its Sign in with Apple
+	// grant where it can. Every token stops working.
+	DeleteAccount(context.Context, *DeleteAccountRequest) (*emptypb.Empty, error)
+	// Records a Noted Pro purchase made in the App Store: signed_transaction is
+	// StoreKit 2's Transaction.jwsRepresentation. The server verifies Apple's
+	// signature, the bundle id and the product id, and on success marks the
+	// user Pro (Account.pro). INVALID_ARGUMENT for a bad or foreign signature,
+	// FAILED_PRECONDITION for a refunded (revoked) transaction.
+	VerifyPurchase(context.Context, *VerifyPurchaseRequest) (*Account, error)
 	// Pairing a client that signs in through the browser (MCP OAuth, e.g. Claude
 	// Code): the server's sign-in page shows a code and a QR code
 	// (noted://pair?code=...&server=...), and the signed-in App approves it,
@@ -4793,6 +4965,12 @@ func (UnimplementedAccountServiceServer) ListTokens(context.Context, *ListTokens
 }
 func (UnimplementedAccountServiceServer) RevokeToken(context.Context, *RevokeTokenRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RevokeToken not implemented")
+}
+func (UnimplementedAccountServiceServer) DeleteAccount(context.Context, *DeleteAccountRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAccount not implemented")
+}
+func (UnimplementedAccountServiceServer) VerifyPurchase(context.Context, *VerifyPurchaseRequest) (*Account, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerifyPurchase not implemented")
 }
 func (UnimplementedAccountServiceServer) GetPairing(context.Context, *GetPairingRequest) (*Pairing, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPairing not implemented")
@@ -5004,6 +5182,42 @@ func _AccountService_RevokeToken_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountService_DeleteAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).DeleteAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_DeleteAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).DeleteAccount(ctx, req.(*DeleteAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountService_VerifyPurchase_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyPurchaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).VerifyPurchase(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_VerifyPurchase_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).VerifyPurchase(ctx, req.(*VerifyPurchaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AccountService_GetPairing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPairingRequest)
 	if err := dec(in); err != nil {
@@ -5104,6 +5318,14 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RevokeToken",
 			Handler:    _AccountService_RevokeToken_Handler,
+		},
+		{
+			MethodName: "DeleteAccount",
+			Handler:    _AccountService_DeleteAccount_Handler,
+		},
+		{
+			MethodName: "VerifyPurchase",
+			Handler:    _AccountService_VerifyPurchase_Handler,
 		},
 		{
 			MethodName: "GetPairing",

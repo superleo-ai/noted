@@ -1,0 +1,51 @@
+{{define "content"}}
+<h1>支持</h1>
+<p class="doc-date">Noted 的常见问题，以及怎么联系我们。</p>
+
+<h2>联系我们</h2>
+<p>遇到问题、想提建议，请发邮件到 <a href="mailto:{{.Email}}">{{.Email}}</a>，也可以在 <a href="{{.GitHub}}/issues" rel="noopener">GitHub</a> 上提交 issue，写清楚用的是 iPhone 还是网页、做了什么、看到了什么。请不要在 issue 里贴出你的令牌、密码或私人内容。</p>
+
+<h2>怎么登录？</h2>
+<p>在 App 里用 Apple 登录，或用邮箱和密码登录 / 注册。网页 <a href="/">noted.superleo.app</a> 可以用同一个邮箱账号登录。</p>
+
+<h2>换了手机，数据还在吗？</h2>
+<p>在。内容保存在服务器上，在新设备上登录同一个账号就能看到。</p>
+
+<h2>怎么导出数据？</h2>
+<p>App 里打开“设置 → 导出数据”，可以导出笔记（Markdown）、日程与待办（iCalendar）和全部数据（JSON）。</p>
+
+<h2>怎么删除账号？</h2>
+<p>App 里打开“设置 → 删除账号”。账号和其中的全部内容会从我们的服务器上删除，无法恢复，建议先导出一份。</p>
+
+<h2>AI 会读我的哪些内容？</h2>
+<p>只有在你同意之后、并且在你使用 AI 功能时，服务器才会把这次请求需要的条目文字发给 {{.Provider}} 处理，而且只限你在“设置 → 智能”里允许的空间。可以随时在“设置 → 智能 → AI 数据使用”撤回同意。详见<a href="/privacy">隐私政策</a>。</p>
+
+<h2>买了 Noted Pro，换设备后怎么恢复？</h2>
+<p>用同一个 Apple 账号，在 App 的 Noted Pro 页面点“恢复购买”。退款请通过 Apple 申请。</p>
+
+<section class="doc-lang" lang="en">
+<h1>Support</h1>
+<p class="doc-date">Common questions about Noted, and how to reach us.</p>
+
+<h2>Contact us</h2>
+<p>For problems or suggestions, email <a href="mailto:{{.Email}}">{{.Email}}</a> or open an issue on <a href="{{.GitHub}}/issues" rel="noopener">GitHub</a>, saying whether you use the iPhone app or the website, what you did and what you saw. Please do not post tokens, passwords or private content in an issue.</p>
+
+<h2>How do I sign in?</h2>
+<p>In the app, use Sign in with Apple, or sign in / sign up with an email address and password. The same email account works on the website at <a href="/">noted.superleo.app</a>.</p>
+
+<h2>Will my data be there on a new phone?</h2>
+<p>Yes. Your content is stored on the server; sign in to the same account on the new device.</p>
+
+<h2>How do I export my data?</h2>
+<p>In the app, open Settings → Export data to export notes (Markdown), events and to-dos (iCalendar) and all data (JSON).</p>
+
+<h2>How do I delete my account?</h2>
+<p>In the app, open Settings → Delete account. The account and all of its content are deleted from our servers and cannot be recovered, so export a copy first.</p>
+
+<h2>What does the AI read?</h2>
+<p>Only after you agree, and only when you use an AI feature, does the server send {{.ProviderEN}} the text of the items that request needs, limited to the spaces you allow under Settings → AI. You can withdraw consent at any time under Settings → AI → AI data use. See the <a href="/privacy">Privacy Policy</a>.</p>
+
+<h2>How do I restore Noted Pro on a new device?</h2>
+<p>With the same Apple Account, tap “Restore purchases” on the Noted Pro page in the app. Refunds are requested through Apple.</p>
+</section>
+{{end}}

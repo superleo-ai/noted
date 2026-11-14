@@ -78,6 +78,31 @@ struct BriefingRow: View {
     let suggestions: Int
 
     var body: some View {
+        if text == nil {
+            suggestionsRow
+        } else {
+            paragraph
+        }
+    }
+
+    /// Only suggestions (no briefing): one row, "✦ 有 1 条建议 ›", like a settings link.
+    private var suggestionsRow: some View {
+        Button { router.push(.suggestions) } label: {
+            HStack(spacing: 12) {
+                IconTile(systemName: "sparkles", tile: .blue)
+                Text("有 \(suggestions) 条建议").foregroundStyle(.primary)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(.tertiaryText)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(suggestions) 条建议")
+        .accessibilityIdentifier("today-suggestions")
+    }
+
+    private var paragraph: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let text {
                 Text(text).font(.subheadline).fixedSize(horizontal: false, vertical: true)

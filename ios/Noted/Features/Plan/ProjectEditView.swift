@@ -17,7 +17,7 @@ struct ProjectEditView: View {
     @State private var saving = false
 
     var body: some View {
-        List {
+        List { Group {
             Section {
                 TextField("项目名称", text: $title)
                     .font(.title3.weight(.semibold))
@@ -38,8 +38,9 @@ struct ProjectEditView: View {
             Section {
                 NotesField(text: $notes)
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .navigationTitle("编辑项目")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -48,7 +49,7 @@ struct ProjectEditView: View {
                     .fontWeight(.semibold)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
                     .accessibilityIdentifier("project-edit-done")
-            }
+            }.plainBar()
         }
         .onAppear(perform: fill)
     }

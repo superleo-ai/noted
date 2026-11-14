@@ -22,7 +22,7 @@ struct GoalEditView: View {
     @State private var saving = false
 
     var body: some View {
-        List {
+        List { Group {
             Section {
                 TextField("目标名称", text: $title)
                     .font(.title3.weight(.semibold))
@@ -35,7 +35,7 @@ struct GoalEditView: View {
                     Picker("周期", selection: $period) {
                         ForEach(Noted_V1_GoalPeriod.planChoices, id: \.self) { Text($0.every).tag($0) }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).classicSegmented()
                     .labelsHidden()
                     .frame(width: 168)
                 }
@@ -57,7 +57,7 @@ struct GoalEditView: View {
                         Text("次数").tag(false)
                         Text("分钟").tag(true)
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).classicSegmented()
                     .labelsHidden()
                     .frame(width: 132)
                 }
@@ -86,8 +86,9 @@ struct GoalEditView: View {
             Section {
                 NotesField(text: $notes)
             }
-        }
+        }.classicRowInsets() }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 0, for: .scrollContent)
         .navigationTitle("编辑目标")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -96,7 +97,7 @@ struct GoalEditView: View {
                     .fontWeight(.semibold)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
                     .accessibilityIdentifier("goal-edit-done")
-            }
+            }.plainBar()
         }
         .onAppear(perform: fill)
     }

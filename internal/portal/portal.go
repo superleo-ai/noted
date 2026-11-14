@@ -51,7 +51,8 @@ type portal struct {
 	public string
 }
 
-// New returns the handler for "/" (the page and its assets) and "/api/".
+// New returns the handler for "/" (the page and its assets), the policy
+// pages (/privacy, /terms, /support) and "/api/".
 func New(o Options) http.Handler {
 	p := &portal{auth: o.Auth, acct: o.Account, public: o.PublicURL}
 	site := mustLoadSite()
@@ -69,6 +70,9 @@ func New(o Options) http.Handler {
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		writeErr(w, http.StatusNotFound, "no such API")
 	})
+	for path, body := range legalPages() {
+		mux.HandleFunc("GET "+path, serveLegal(body))
+	}
 	mux.Handle("/", site)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
