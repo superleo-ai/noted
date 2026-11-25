@@ -5743,3 +5743,143 @@ var PeopleService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "noted/v1/noted.proto",
 }
+
+const (
+	ExtractionService_ListPendingExtractions_FullMethodName = "/noted.v1.ExtractionService/ListPendingExtractions"
+	ExtractionService_SubmitExtraction_FullMethodName       = "/noted.v1.ExtractionService/SubmitExtraction"
+)
+
+// ExtractionServiceClient is the client API for ExtractionService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ExtractionServiceClient interface {
+	ListPendingExtractions(ctx context.Context, in *ListPendingExtractionsRequest, opts ...grpc.CallOption) (*ListPendingExtractionsResponse, error)
+	SubmitExtraction(ctx context.Context, in *SubmitExtractionRequest, opts ...grpc.CallOption) (*SubmitExtractionResponse, error)
+}
+
+type extractionServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewExtractionServiceClient(cc grpc.ClientConnInterface) ExtractionServiceClient {
+	return &extractionServiceClient{cc}
+}
+
+func (c *extractionServiceClient) ListPendingExtractions(ctx context.Context, in *ListPendingExtractionsRequest, opts ...grpc.CallOption) (*ListPendingExtractionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPendingExtractionsResponse)
+	err := c.cc.Invoke(ctx, ExtractionService_ListPendingExtractions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *extractionServiceClient) SubmitExtraction(ctx context.Context, in *SubmitExtractionRequest, opts ...grpc.CallOption) (*SubmitExtractionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitExtractionResponse)
+	err := c.cc.Invoke(ctx, ExtractionService_SubmitExtraction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ExtractionServiceServer is the server API for ExtractionService service.
+// All implementations must embed UnimplementedExtractionServiceServer
+// for forward compatibility.
+type ExtractionServiceServer interface {
+	ListPendingExtractions(context.Context, *ListPendingExtractionsRequest) (*ListPendingExtractionsResponse, error)
+	SubmitExtraction(context.Context, *SubmitExtractionRequest) (*SubmitExtractionResponse, error)
+	mustEmbedUnimplementedExtractionServiceServer()
+}
+
+// UnimplementedExtractionServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedExtractionServiceServer struct{}
+
+func (UnimplementedExtractionServiceServer) ListPendingExtractions(context.Context, *ListPendingExtractionsRequest) (*ListPendingExtractionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPendingExtractions not implemented")
+}
+func (UnimplementedExtractionServiceServer) SubmitExtraction(context.Context, *SubmitExtractionRequest) (*SubmitExtractionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitExtraction not implemented")
+}
+func (UnimplementedExtractionServiceServer) mustEmbedUnimplementedExtractionServiceServer() {}
+func (UnimplementedExtractionServiceServer) testEmbeddedByValue()                           {}
+
+// UnsafeExtractionServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ExtractionServiceServer will
+// result in compilation errors.
+type UnsafeExtractionServiceServer interface {
+	mustEmbedUnimplementedExtractionServiceServer()
+}
+
+func RegisterExtractionServiceServer(s grpc.ServiceRegistrar, srv ExtractionServiceServer) {
+	// If the following call pancis, it indicates UnimplementedExtractionServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ExtractionService_ServiceDesc, srv)
+}
+
+func _ExtractionService_ListPendingExtractions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPendingExtractionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExtractionServiceServer).ListPendingExtractions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExtractionService_ListPendingExtractions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExtractionServiceServer).ListPendingExtractions(ctx, req.(*ListPendingExtractionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExtractionService_SubmitExtraction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitExtractionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExtractionServiceServer).SubmitExtraction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExtractionService_SubmitExtraction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExtractionServiceServer).SubmitExtraction(ctx, req.(*SubmitExtractionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ExtractionService_ServiceDesc is the grpc.ServiceDesc for ExtractionService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ExtractionService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "noted.v1.ExtractionService",
+	HandlerType: (*ExtractionServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListPendingExtractions",
+			Handler:    _ExtractionService_ListPendingExtractions_Handler,
+		},
+		{
+			MethodName: "SubmitExtraction",
+			Handler:    _ExtractionService_SubmitExtraction_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "noted/v1/noted.proto",
+}

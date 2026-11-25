@@ -106,12 +106,30 @@ type Cortex struct {
 	SyncUsers []string `toml:"sync_users"`
 	// Interval between runs, a Go duration such as "15m". Default 15m, at least 1m.
 	Interval string `toml:"interval"`
+	// Extract says who reads each note for the people, organisations,
+	// technologies, places and concepts it names, which become graph nodes:
+	// "off" (default), "ai" (noted's own model; needs [ai] enabled) or
+	// "external" (an outside reader, such as the user's agent, fetches notes
+	// with the extraction_pending MCP tool and sends answers back with
+	// extraction_submit). Either way note text leaves noted, so it is opt-in.
+	Extract string `toml:"extract"`
+	// ExtractPerRun caps how many changed notes are read per run, so a first
+	// run over many notes spreads over runs. Default 30.
+	ExtractPerRun int `toml:"extract_per_run"`
 }
 
 // CortexTokenEnv holds the CortexDB bearer token.
 const CortexTokenEnv = "CORTEXDB_GRPC_TOKEN"
 
 // Enabled reports whether the sync should run.
+// ExtractMode is "off", "ai" or "external".
+func (c Cortex) ExtractMode() string {
+	if c.Extract == "" {
+		return "off"
+	}
+	return c.Extract
+}
+
 func (c Cortex) Enabled() bool { return c.Remote != "" && len(c.SyncUsers) > 0 }
 
 // Every is the interval between runs.
@@ -188,6 +206,7 @@ func applyEnv(c *Config) {
 	}
 	str(&c.Cortex.Remote, "NOTED_CORTEXDB_REMOTE")
 	str(&c.Cortex.Interval, "NOTED_CORTEXDB_INTERVAL")
+	str(&c.Cortex.Extract, "NOTED_CORTEXDB_EXTRACT")
 	boolean(&c.Cortex.TLS, "NOTED_CORTEXDB_TLS")
 	if v := os.Getenv("NOTED_CORTEXDB_SYNC_USERS"); v != "" {
 		c.Cortex.SyncUsers = nil
@@ -230,6 +249,17 @@ func (c Config) Validate() error {
 	}
 	if len(c.Cortex.SyncUsers) > 0 && c.Cortex.Remote == "" {
 		return fmt.Errorf("cortexdb.sync_users needs cortexdb.remote")
+	}
+	switch c.Cortex.Extract = strings.ToLower(strings.TrimSpace(c.Cortex.Extract)); c.Cortex.Extract {
+	case "", "off", "ai", "external":
+	default:
+		return fmt.Errorf("cortexdb.extract %q: must be off, ai or external", c.Cortex.Extract)
+	}
+	if c.Cortex.Extract == "ai" && !c.AI.Enabled {
+		return fmt.Errorf("cortexdb.extract = \"ai\" needs [ai] enabled")
+	}
+	if c.Cortex.ExtractPerRun < 0 {
+		return fmt.Errorf("cortexdb.extract_per_run %d: must be 0 (default 30) or more", c.Cortex.ExtractPerRun)
 	}
 	if v := c.Cortex.Interval; v != "" {
 		if d, err := time.ParseDuration(v); err != nil || d < time.Minute {

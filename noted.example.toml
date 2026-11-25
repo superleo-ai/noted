@@ -94,3 +94,8 @@ enabled = false
 # tls        = false
 # sync_users = ["apple-b0d825f8"]     # user names (noted user list)
 # interval   = "15m"                  # at least 1m
+# extract    = "off"                  # who reads notes for the people, organisations, technologies,
+#                                     # places and concepts they name: "off", "ai" (noted's own model,
+#                                     # needs [ai]) or "external" (the user's agent, through the MCP
+#                                     # tools extraction_pending and extraction_submit)
+# extract_per_run = 30                # changed notes read per run ("ai" mode)

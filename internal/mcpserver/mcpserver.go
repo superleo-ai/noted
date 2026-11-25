@@ -31,6 +31,7 @@ type tools struct {
 	ai       pb.AIServiceClient
 	compassC pb.CompassServiceClient
 	people   pb.PeopleServiceClient
+	extract  pb.ExtractionServiceClient
 	loc      *time.Location // reads zone-less times
 }
 
@@ -38,7 +39,7 @@ type tools struct {
 // server reports AI enabled, so clients never see tools that cannot work.
 func New(ctx context.Context, conn grpc.ClientConnInterface, loc *time.Location, version string) (*mcp.Server, error) {
 	t := &tools{notes: pb.NewNoteServiceClient(conn), cal: pb.NewCalendarServiceClient(conn), goals: pb.NewGoalServiceClient(conn), projs: pb.NewProjectServiceClient(conn), focus: pb.NewFocusServiceClient(conn), sugg: pb.NewSuggestionServiceClient(conn),
-		objs: pb.NewObjectiveServiceClient(conn), time: pb.NewTimeServiceClient(conn), alarms: pb.NewAlarmServiceClient(conn), hols: pb.NewHolidayServiceClient(conn), ai: pb.NewAIServiceClient(conn), compassC: pb.NewCompassServiceClient(conn), people: pb.NewPeopleServiceClient(conn), loc: loc}
+		objs: pb.NewObjectiveServiceClient(conn), time: pb.NewTimeServiceClient(conn), alarms: pb.NewAlarmServiceClient(conn), hols: pb.NewHolidayServiceClient(conn), ai: pb.NewAIServiceClient(conn), compassC: pb.NewCompassServiceClient(conn), people: pb.NewPeopleServiceClient(conn), extract: pb.NewExtractionServiceClient(conn), loc: loc}
 	st, err := t.ai.GetStatus(ctx, &pb.GetStatusRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("cannot reach the noted server (check address and token): %w", err)
@@ -54,6 +55,7 @@ func New(ctx context.Context, conn grpc.ClientConnInterface, loc *time.Location,
 	t.registerObjectives(s)
 	t.registerCompass(s)
 	t.registerPeople(s)
+	t.registerExtraction(s)
 	t.registerTime(s)
 	t.registerAlarms(s)
 	t.registerSuggestions(s)

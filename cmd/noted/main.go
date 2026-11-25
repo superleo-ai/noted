@@ -150,6 +150,7 @@ func serve(argv []string) error {
 	deps := server.Deps{
 		Store: st, Auth: authn, Hub: reminder.NewHub(), Location: cfg.Location(), Locale: plan.Locale(cfg.Language),
 		Reflection: cfg.Server.Reflection, AIDailyLimit: cfg.AI.DailyLimit,
+		ExtractionUsers: externalExtractionUsers(cfg),
 	}
 	if deps.Secret, err = secretbox.Load(cfg.Storage.SecretKey, cfg.Storage.DataDir); err != nil {
 		return fmt.Errorf("secret key: %w", err)
@@ -161,6 +162,7 @@ func serve(argv []string) error {
 	deps.EmailSignup = cfg.Auth.Signup
 	deps.Account = server.NewAccount(deps) // shared by gRPC and the web portal
 
+	var extractor cortexsync.Extractor
 	if cfg.AI.Enabled {
 		eng, err := ai.New(ctx, ai.Options{
 			Store: st, LLM: cfg.AI.LLM, Embed: cfg.AI.Embedding, Dir: cfg.AIDir(), Location: cfg.Location(), Locale: plan.Locale(cfg.Language),
@@ -170,6 +172,7 @@ func serve(argv []string) error {
 		}
 		defer func() { _ = eng.Close() }()
 		deps.Engine = eng
+		extractor = cortexsync.Raw(eng.EntitiesJSON)
 		deps.Account.Engine = eng // clears a deleted account's notes from the index
 		s := eng.Status()
 		slog.Info("AI enabled", "model", s.Model, "semantic_search", s.Semantic)
@@ -192,6 +195,10 @@ func serve(argv []string) error {
 			return err
 		}
 		defer func() { _ = sy.Brain.(*cortexsync.Remote).Close() }()
+		if cfg.Cortex.ExtractMode() == "ai" {
+			sy.Extractor = extractor // Validate guarantees AI is on
+		}
+		slog.Info("cortexdb extraction", "mode", cfg.Cortex.ExtractMode(), "per_run", cfg.Cortex.ExtractPerRun)
 		deps.Account.Brain = sy // a deleted account's items leave the brain too
 		slog.Info("cortexdb sync on", "remote", cfg.Cortex.Remote, "users", len(cfg.Cortex.SyncUsers), "every", cfg.Cortex.Every(),
 			"token", cfg.Cortex.Token() != "")
@@ -459,6 +466,7 @@ func newCortexSyncer(cfg config.Config, st *store.Store, connect bool) (*cortexs
 	sy := &cortexsync.Syncer{
 		Store: st, Target: cfg.Cortex.Remote + "/" + cortexsync.DefaultCollection, Users: cfg.Cortex.SyncUsers,
 		Location: cfg.Location(), Lang: cfg.Language, Interval: cfg.Cortex.Every(),
+		Extract: cfg.Cortex.ExtractMode() != "off", PerRun: cfg.Cortex.ExtractPerRun,
 	}
 	if connect {
 		r, err := cortexsync.Dial(cfg.Cortex.Remote, cfg.Cortex.Token(), cfg.Cortex.TLS)
@@ -689,4 +697,13 @@ func mcpCmd(argv []string) error {
 		return err
 	}
 	return srv.Run(ctx, &mcp.StdioTransport{})
+}
+
+// externalExtractionUsers are the users whose notes an outside reader may
+// fetch for the brain: the sync users, and only when extract is "external".
+func externalExtractionUsers(cfg config.Config) []string {
+	if cfg.Cortex.ExtractMode() != "external" {
+		return nil
+	}
+	return cfg.Cortex.SyncUsers
 }

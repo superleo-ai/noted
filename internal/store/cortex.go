@@ -71,3 +71,66 @@ func (s *Store) CortexForget(ctx context.Context, userID, key string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM cortex_sync_items WHERE user_id = ? AND item_key = ?`, userID, key)
 	return err
 }
+
+// What the model found in each note for the brain (package cortexsync), kept
+// so a note is read again only when its text changed. Unlike the ledger it
+// does not depend on the target brain.
+
+func (s *Store) migrateCortexExtractions(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS cortex_extractions (
+	user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	note_id      TEXT NOT NULL,
+	hash         TEXT NOT NULL,
+	result_json  TEXT NOT NULL,
+	extracted_ms INTEGER NOT NULL,
+	PRIMARY KEY (user_id, note_id)
+)`)
+	return err
+}
+
+// CortexExtraction is one note's stored extraction: the hash of the text it
+// was made from and the cleaned result as JSON.
+type CortexExtraction struct {
+	Hash   string
+	Result string
+}
+
+// CortexExtractions returns the user's stored extractions by note id.
+func (s *Store) CortexExtractions(ctx context.Context, userID string) (map[string]CortexExtraction, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT note_id, hash, result_json FROM cortex_extractions WHERE user_id = ?`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	out := map[string]CortexExtraction{}
+	for rows.Next() {
+		var id string
+		var e CortexExtraction
+		if err := rows.Scan(&id, &e.Hash, &e.Result); err != nil {
+			return nil, err
+		}
+		out[id] = e
+	}
+	return out, rows.Err()
+}
+
+// CortexExtractionPut stores or replaces a note's extraction.
+func (s *Store) CortexExtractionPut(ctx context.Context, userID, noteID, hash, result string, at time.Time) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO cortex_extractions(user_id, note_id, hash, result_json, extracted_ms) VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(user_id, note_id) DO UPDATE SET hash = excluded.hash, result_json = excluded.result_json, extracted_ms = excluded.extracted_ms`,
+		userID, noteID, hash, result, ms(at))
+	return err
+}
+
+// CortexExtractionDrop removes the extractions of notes that are gone.
+func (s *Store) CortexExtractionDrop(ctx context.Context, userID string, noteIDs []string) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		for _, id := range noteIDs {
+			if _, err := tx.ExecContext(ctx, `DELETE FROM cortex_extractions WHERE user_id = ? AND note_id = ?`, userID, id); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

@@ -1793,3 +1793,38 @@ service PeopleService {
   rpc ListPeople(ListPeopleRequest) returns (ListPeopleResponse);
   rpc DeletePerson(DeletePersonRequest) returns (google.protobuf.Empty);
 }
+
+// ----------------------------------------------------------- extraction ----
+
+// ExtractionService lets an outside reader (the person's own agent) feed the
+// CortexDB sync with what their notes are about, when [cortexdb] extract is
+// "external". Only notes in spaces the user lets AI read are ever listed.
+message ListPendingExtractionsRequest {
+  int32 limit = 1; // default 10, max 50
+}
+message PendingExtraction {
+  string note_id = 1;
+  string hash = 2;    // of the note's title and content; send it back unchanged
+  string title = 3;
+  string content = 4; // trimmed to 6000 characters
+}
+message ListPendingExtractionsResponse {
+  repeated PendingExtraction notes = 1; // most recently edited first
+  string instructions = 2;              // what to extract and the JSON to answer with
+  int32 remaining = 3;                  // pending notes beyond this list
+}
+message SubmitExtractionRequest {
+  string note_id = 1;
+  string hash = 2;
+  string result = 3; // the JSON object described in the instructions
+}
+message SubmitExtractionResponse {
+  string status = 1; // "stored", or "stale" when the note changed since the hash was made
+  int32 entities = 2;  // kept after cleaning
+  int32 relations = 3; // kept after cleaning
+}
+
+service ExtractionService {
+  rpc ListPendingExtractions(ListPendingExtractionsRequest) returns (ListPendingExtractionsResponse);
+  rpc SubmitExtraction(SubmitExtractionRequest) returns (SubmitExtractionResponse);
+}

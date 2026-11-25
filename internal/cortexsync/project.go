@@ -67,6 +67,7 @@ const (
 	RelSpentOn     = "spent_on"     // a week of time entries -> project
 	RelHeldIn      = "held_in"      // holding -> currency
 	RelInvolves    = "involves"     // any item whose words name a person -> that person
+	RelAbout       = "about"        // note -> a person, organisation, technology, place or concept its text is about
 )
 
 // Holding is a holding with the position its trades add up to.
@@ -98,6 +99,9 @@ type Snapshot struct {
 	Time       []store.TimeEntry
 	Alarms     []Alarm
 	People     []store.Person
+	// Extractions is what the model found in each note, by note id. A note
+	// without one is projected without topics.
+	Extractions map[string]Extraction
 }
 
 // Item is one record for the brain.
@@ -503,10 +507,12 @@ func (b *builder) note(n store.Note) {
 	if n.Archived {
 		status = "archived"
 	}
+	extra, extraRel, topics := b.topics(n.ID, key(KindNote, n.ID), &rels)
 	b.emit(record{
 		kind: KindNote, id: n.ID, title: title, name: title,
 		desc:    line(b.l.kindNote, labeled(b.l.tags, strings.Join(n.Tags, ", ")), b.l.updated+b.date(n.Updated)),
-		content: []string{"# " + title, "", n.Content, "", line(labeled(b.l.tags, strings.Join(n.Tags, ", ")), proj, b.l.space+b.space(n.Space), b.l.updated+b.date(n.Updated))},
+		content: []string{"# " + title, "", n.Content, "", line(labeled(b.l.tags, strings.Join(n.Tags, ", ")), proj, b.l.space+b.space(n.Space), b.l.updated+b.date(n.Updated)), labeled(b.l.topics, topics)},
+		extra:   extra, extraRel: extraRel,
 		meta: map[string]string{"tags": strings.Join(n.Tags, ","), "project_id": n.ProjectID, "space": n.Space, "pinned": boolStr(n.Pinned),
 			"status": status, "updated": n.Updated.UTC().Format(time.RFC3339)},
 		rels: rels,

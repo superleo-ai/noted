@@ -37,6 +37,9 @@ type Deps struct {
 	Account      *service.Account   // nil: built from the fields above; set it to share one with the web portal
 	Purchases    *storekit.Verifier // VerifyPurchase; nil: Apple's roots, noted's bundle and product
 	AIDailyLimit int                // model calls per user per UTC day; 0: no cap
+	// ExtractionUsers may have their notes read and answered by an outside
+	// reader for the brain (ExtractionService); empty: nobody.
+	ExtractionUsers []string
 	// Secret seals Pro users' own model API keys. Nil: a random one for this
 	// process only (keys stored under it do not survive a restart).
 	Secret *secretbox.Box
@@ -70,6 +73,7 @@ func New(d Deps, opts ...grpc.ServerOption) *grpc.Server {
 	pb.RegisterObjectiveServiceServer(g, &service.Objectives{Store: d.Store})
 	pb.RegisterCompassServiceServer(g, &service.Compass{Store: d.Store})
 	pb.RegisterPeopleServiceServer(g, &service.People{Store: d.Store})
+	pb.RegisterExtractionServiceServer(g, &service.Extraction{Store: d.Store, Users: d.ExtractionUsers})
 	pb.RegisterHoldingServiceServer(g, &service.Holdings{Store: d.Store, Location: d.Location})
 	pb.RegisterTimeServiceServer(g, &service.Time{Store: d.Store, Location: d.Location})
 	pb.RegisterAlarmServiceServer(g, &service.Alarms{Store: d.Store, Location: d.Location})

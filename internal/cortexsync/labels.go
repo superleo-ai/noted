@@ -28,6 +28,7 @@ type labels struct {
 	alarmOn, alarmOff, noNext     string
 	nextFires, listSep            string // date, times
 	source                        string // link
+	topics                        string // heading over a note's extracted entities
 }
 
 func (l labels) period(p string) string {
@@ -75,6 +76,7 @@ var labelsZH = labels{
 	weekdays:       [7]string{"周日", "周一", "周二", "周三", "周四", "周五", "周六"},
 	entryMin:       "%s %d 分钟",
 	source:         "来源：%s（数据以 noted 为准）",
+	topics:         "主题：",
 	rule:           "规则：", holidays: "节假日：", mode: "方式：", said: "原话：",
 	modeAlarm: "闹钟", modeReminder: "提醒", alarmOn: "已开启", alarmOff: "已关闭", noNext: "暂无下次响铃",
 	nextFires: "下次：截至 %s，接下来 %s（推算快照，以 noted 为准）", listSep: "、",
@@ -108,6 +110,7 @@ var labelsEN = labels{
 	weekdays:       [7]string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"},
 	entryMin:       "%s %d min",
 	source:         "Source: %s (noted is authoritative)",
+	topics:         "Topics: ",
 	rule:           "Rule: ", holidays: "Holidays: ", mode: "Rings as: ", said: "In the user's words: ",
 	modeAlarm: "alarm", modeReminder: "reminder", alarmOn: "on", alarmOff: "off", noNext: "No upcoming rings",
 	nextFires: "Next: as of %s, %s (derived snapshot; noted is authoritative)", listSep: ", ",

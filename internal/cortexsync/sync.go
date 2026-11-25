@@ -31,7 +31,14 @@ type Syncer struct {
 	Lang     string
 	Interval time.Duration // between runs of Run
 	Timeout  time.Duration // per call; default 60s
-	Log      *slog.Logger
+	// Extract adds what each note's text is about (people, organisations,
+	// technologies, places, concepts) to the notes sent. Results come from a
+	// cache; Extractor, when set, reads the notes that changed, at most
+	// PerRun (default 30) a run. Without an Extractor only the cache is used.
+	Extract   bool
+	Extractor Extractor
+	PerRun    int
+	Log       *slog.Logger
 }
 
 // Options of one run.
@@ -48,6 +55,10 @@ type Report struct {
 	Unchanged int
 	Failed    []Failure
 	Stopped   bool // the brain could not be reached; the rest waits for the next run
+	// Notes read by the model this run, and notes it failed on (they keep
+	// their earlier result and are tried next run).
+	Extracted, ExtractFailed int
+	ExtractErr               string // the first failure, one line
 }
 
 // Failure is an item a run could not send or remove; the next run tries again.
@@ -88,6 +99,9 @@ func (s *Syncer) SyncUser(ctx context.Context, name string, opt Options) (Report
 	}
 	snap, err := Collect(ctx, s.Store, userID, name, loc, s.Lang, now)
 	if err != nil {
+		return rep, err
+	}
+	if err := s.extractNotes(ctx, userID, &snap, opt.DryRun, &rep); err != nil {
 		return rep, err
 	}
 	proj := Project(snap)
@@ -259,6 +273,9 @@ func (s *Syncer) runUser(ctx context.Context, name string, budget time.Duration)
 	}
 	log.Info("cortexdb sync", "user", name, "sent", len(rep.Upserts), "deleted", len(rep.Deletes), "unchanged", rep.Unchanged,
 		"failed", len(rep.Failed), "stopped", rep.Stopped, "took", time.Since(start).Round(time.Millisecond))
+	if rep.Extracted > 0 || rep.ExtractFailed > 0 {
+		log.Info("cortexdb extraction", "user", name, "read", rep.Extracted, "failed", rep.ExtractFailed, "first_error", rep.ExtractErr)
+	}
 	for i, f := range rep.Failed {
 		if i == 10 {
 			log.Warn("cortexdb sync: more failures", "user", name, "count", len(rep.Failed)-i)
