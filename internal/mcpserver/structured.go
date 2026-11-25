@@ -103,7 +103,7 @@ type money struct {
 
 type deletedOut struct {
 	Deleted string   `json:"deleted" jsonschema:"the id of what was deleted"`
-	Kind    string   `json:"kind" jsonschema:"task, event, note, project, goal, objective, time, reading, taskWork or alarm"`
+	Kind    string   `json:"kind" jsonschema:"task, event, note, project, goal, objective, time, reading, taskWork, alarm or person"`
 	Task    *taskOut `json:"task,omitempty" jsonschema:"delete_task_work only: the task with its totals recomputed"`
 }
 

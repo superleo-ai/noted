@@ -1747,3 +1747,49 @@ service CompassService {
   rpc SetCompass(SetCompassRequest) returns (Compass);
   rpc ListCompassRevisions(ListCompassRevisionsRequest) returns (ListCompassRevisionsResponse);
 }
+
+// --------------------------------------------------------------- people ----
+//
+// The people in the user's life: one entry per name, with whatever is worth
+// remembering about them as free-form fields (relation, phone, birthday,
+// notes, what they are up to). Names are unique per user, ignoring case.
+
+message Person {
+  string id = 1;
+  string name = 2;
+  // Free-form: relation, phone, birthday, notes, ... Keys are as given.
+  map<string, string> fields = 3;
+  google.protobuf.Timestamp create_time = 4;
+  google.protobuf.Timestamp update_time = 5;
+}
+
+message UpsertPersonRequest {
+  // Who: matched to an existing person ignoring case; a new one otherwise.
+  string name = 1;
+  // Merged into the person's fields; a key given with an empty value is
+  // removed. Keys not named keep their value.
+  map<string, string> fields = 2;
+  // Renames the person; it must not be another person's name.
+  string new_name = 3;
+}
+message GetPersonRequest {
+  string id = 1;   // either id
+  string name = 2; // or name (ignoring case)
+}
+message ListPeopleRequest {
+  string query = 1;    // words to look for in the name and the field values; empty lists everyone
+  int32 page_size = 2; // default 100, max 1000; by name
+}
+message ListPeopleResponse { repeated Person people = 1; }
+message DeletePersonRequest {
+  string id = 1;   // either id
+  string name = 2; // or name (ignoring case)
+}
+
+service PeopleService {
+  // Creates the person or merges into the one of that name.
+  rpc UpsertPerson(UpsertPersonRequest) returns (Person);
+  rpc GetPerson(GetPersonRequest) returns (Person);
+  rpc ListPeople(ListPeopleRequest) returns (ListPeopleResponse);
+  rpc DeletePerson(DeletePersonRequest) returns (google.protobuf.Empty);
+}

@@ -546,6 +546,9 @@ func (s *Store) migrate(ctx context.Context) error {
 	if err := s.migrateTimed(ctx); err != nil {
 		return err
 	}
+	if err := s.migratePeople(ctx); err != nil {
+		return err
+	}
 	return s.migrateSchedule(ctx)
 }
 

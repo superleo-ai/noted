@@ -5525,3 +5525,221 @@ var CompassService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "noted/v1/noted.proto",
 }
+
+const (
+	PeopleService_UpsertPerson_FullMethodName = "/noted.v1.PeopleService/UpsertPerson"
+	PeopleService_GetPerson_FullMethodName    = "/noted.v1.PeopleService/GetPerson"
+	PeopleService_ListPeople_FullMethodName   = "/noted.v1.PeopleService/ListPeople"
+	PeopleService_DeletePerson_FullMethodName = "/noted.v1.PeopleService/DeletePerson"
+)
+
+// PeopleServiceClient is the client API for PeopleService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type PeopleServiceClient interface {
+	// Creates the person or merges into the one of that name.
+	UpsertPerson(ctx context.Context, in *UpsertPersonRequest, opts ...grpc.CallOption) (*Person, error)
+	GetPerson(ctx context.Context, in *GetPersonRequest, opts ...grpc.CallOption) (*Person, error)
+	ListPeople(ctx context.Context, in *ListPeopleRequest, opts ...grpc.CallOption) (*ListPeopleResponse, error)
+	DeletePerson(ctx context.Context, in *DeletePersonRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+}
+
+type peopleServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPeopleServiceClient(cc grpc.ClientConnInterface) PeopleServiceClient {
+	return &peopleServiceClient{cc}
+}
+
+func (c *peopleServiceClient) UpsertPerson(ctx context.Context, in *UpsertPersonRequest, opts ...grpc.CallOption) (*Person, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Person)
+	err := c.cc.Invoke(ctx, PeopleService_UpsertPerson_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *peopleServiceClient) GetPerson(ctx context.Context, in *GetPersonRequest, opts ...grpc.CallOption) (*Person, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Person)
+	err := c.cc.Invoke(ctx, PeopleService_GetPerson_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *peopleServiceClient) ListPeople(ctx context.Context, in *ListPeopleRequest, opts ...grpc.CallOption) (*ListPeopleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPeopleResponse)
+	err := c.cc.Invoke(ctx, PeopleService_ListPeople_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *peopleServiceClient) DeletePerson(ctx context.Context, in *DeletePersonRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, PeopleService_DeletePerson_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PeopleServiceServer is the server API for PeopleService service.
+// All implementations must embed UnimplementedPeopleServiceServer
+// for forward compatibility.
+type PeopleServiceServer interface {
+	// Creates the person or merges into the one of that name.
+	UpsertPerson(context.Context, *UpsertPersonRequest) (*Person, error)
+	GetPerson(context.Context, *GetPersonRequest) (*Person, error)
+	ListPeople(context.Context, *ListPeopleRequest) (*ListPeopleResponse, error)
+	DeletePerson(context.Context, *DeletePersonRequest) (*emptypb.Empty, error)
+	mustEmbedUnimplementedPeopleServiceServer()
+}
+
+// UnimplementedPeopleServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedPeopleServiceServer struct{}
+
+func (UnimplementedPeopleServiceServer) UpsertPerson(context.Context, *UpsertPersonRequest) (*Person, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpsertPerson not implemented")
+}
+func (UnimplementedPeopleServiceServer) GetPerson(context.Context, *GetPersonRequest) (*Person, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPerson not implemented")
+}
+func (UnimplementedPeopleServiceServer) ListPeople(context.Context, *ListPeopleRequest) (*ListPeopleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPeople not implemented")
+}
+func (UnimplementedPeopleServiceServer) DeletePerson(context.Context, *DeletePersonRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeletePerson not implemented")
+}
+func (UnimplementedPeopleServiceServer) mustEmbedUnimplementedPeopleServiceServer() {}
+func (UnimplementedPeopleServiceServer) testEmbeddedByValue()                       {}
+
+// UnsafePeopleServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PeopleServiceServer will
+// result in compilation errors.
+type UnsafePeopleServiceServer interface {
+	mustEmbedUnimplementedPeopleServiceServer()
+}
+
+func RegisterPeopleServiceServer(s grpc.ServiceRegistrar, srv PeopleServiceServer) {
+	// If the following call pancis, it indicates UnimplementedPeopleServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&PeopleService_ServiceDesc, srv)
+}
+
+func _PeopleService_UpsertPerson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertPersonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeopleServiceServer).UpsertPerson(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeopleService_UpsertPerson_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeopleServiceServer).UpsertPerson(ctx, req.(*UpsertPersonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PeopleService_GetPerson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPersonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeopleServiceServer).GetPerson(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeopleService_GetPerson_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeopleServiceServer).GetPerson(ctx, req.(*GetPersonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PeopleService_ListPeople_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPeopleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeopleServiceServer).ListPeople(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeopleService_ListPeople_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeopleServiceServer).ListPeople(ctx, req.(*ListPeopleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PeopleService_DeletePerson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeletePersonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeopleServiceServer).DeletePerson(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeopleService_DeletePerson_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeopleServiceServer).DeletePerson(ctx, req.(*DeletePersonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// PeopleService_ServiceDesc is the grpc.ServiceDesc for PeopleService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var PeopleService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "noted.v1.PeopleService",
+	HandlerType: (*PeopleServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "UpsertPerson",
+			Handler:    _PeopleService_UpsertPerson_Handler,
+		},
+		{
+			MethodName: "GetPerson",
+			Handler:    _PeopleService_GetPerson_Handler,
+		},
+		{
+			MethodName: "ListPeople",
+			Handler:    _PeopleService_ListPeople_Handler,
+		},
+		{
+			MethodName: "DeletePerson",
+			Handler:    _PeopleService_DeletePerson_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "noted/v1/noted.proto",
+}

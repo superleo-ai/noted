@@ -30,6 +30,7 @@ type tools struct {
 	hols     pb.HolidayServiceClient
 	ai       pb.AIServiceClient
 	compassC pb.CompassServiceClient
+	people   pb.PeopleServiceClient
 	loc      *time.Location // reads zone-less times
 }
 
@@ -37,14 +38,14 @@ type tools struct {
 // server reports AI enabled, so clients never see tools that cannot work.
 func New(ctx context.Context, conn grpc.ClientConnInterface, loc *time.Location, version string) (*mcp.Server, error) {
 	t := &tools{notes: pb.NewNoteServiceClient(conn), cal: pb.NewCalendarServiceClient(conn), goals: pb.NewGoalServiceClient(conn), projs: pb.NewProjectServiceClient(conn), focus: pb.NewFocusServiceClient(conn), sugg: pb.NewSuggestionServiceClient(conn),
-		objs: pb.NewObjectiveServiceClient(conn), time: pb.NewTimeServiceClient(conn), alarms: pb.NewAlarmServiceClient(conn), hols: pb.NewHolidayServiceClient(conn), ai: pb.NewAIServiceClient(conn), compassC: pb.NewCompassServiceClient(conn), loc: loc}
+		objs: pb.NewObjectiveServiceClient(conn), time: pb.NewTimeServiceClient(conn), alarms: pb.NewAlarmServiceClient(conn), hols: pb.NewHolidayServiceClient(conn), ai: pb.NewAIServiceClient(conn), compassC: pb.NewCompassServiceClient(conn), people: pb.NewPeopleServiceClient(conn), loc: loc}
 	st, err := t.ai.GetStatus(ctx, &pb.GetStatusRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("cannot reach the noted server (check address and token): %w", err)
 	}
 	s := mcp.NewServer(&mcp.Implementation{Name: "noted", Version: version}, &mcp.ServerOptions{
 		SchemaCache: schemas,
-		Instructions: "Personal notes, the schedule (日程安排: events, alarms and timed to-dos in one list, list_events; every item has notify, how it reaches the person: alarm rings the phone like an alarm clock, reminder is a timed notification, notification a plain heads-up, none nobody; remind_before_minutes says how far ahead; list_fires is what will go off when), to-dos, projects, goals and objectives, time tracking (时间记录: log_time, timers, time_summary), and alarms (闹钟: create_alarm, a schedule item with notify alarm; the user's phone rings them, following CN 法定节假日 and 调休 when asked; notify alarm for 叫我/闹钟/准时响, reminder when a timed notification is enough). Look up ids with the list_* tools rather than guessing them. Times are RFC 3339 (e.g. 2026-03-05T15:00:00+08:00); " +
+		Instructions: "Personal notes, the schedule (日程安排: events, alarms and timed to-dos in one list, list_events; every item has notify, how it reaches the person: alarm rings the phone like an alarm clock, reminder is a timed notification, notification a plain heads-up, none nobody; remind_before_minutes says how far ahead; list_fires is what will go off when), to-dos, the people in the person's life (人物/联系人: upsert_person, get_person, list_people; who someone is to them, birthday, phone, notes), projects, goals and objectives, time tracking (时间记录: log_time, timers, time_summary), and alarms (闹钟: create_alarm, a schedule item with notify alarm; the user's phone rings them, following CN 法定节假日 and 调休 when asked; notify alarm for 叫我/闹钟/准时响, reminder when a timed notification is enough). Look up ids with the list_* tools rather than guessing them. Times are RFC 3339 (e.g. 2026-03-05T15:00:00+08:00); " +
 			"zone-less times are read in " + loc.String() + ". Resolve relative dates like \"next Friday\" yourself before calling.",
 	})
 	t.register(s)
@@ -52,6 +53,7 @@ func New(ctx context.Context, conn grpc.ClientConnInterface, loc *time.Location,
 	t.registerPlanning(s)
 	t.registerObjectives(s)
 	t.registerCompass(s)
+	t.registerPeople(s)
 	t.registerTime(s)
 	t.registerAlarms(s)
 	t.registerSuggestions(s)

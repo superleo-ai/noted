@@ -69,6 +69,7 @@ func New(d Deps, opts ...grpc.ServerOption) *grpc.Server {
 	pb.RegisterGoalServiceServer(g, &service.Goals{Store: d.Store})
 	pb.RegisterObjectiveServiceServer(g, &service.Objectives{Store: d.Store})
 	pb.RegisterCompassServiceServer(g, &service.Compass{Store: d.Store})
+	pb.RegisterPeopleServiceServer(g, &service.People{Store: d.Store})
 	pb.RegisterHoldingServiceServer(g, &service.Holdings{Store: d.Store, Location: d.Location})
 	pb.RegisterTimeServiceServer(g, &service.Time{Store: d.Store, Location: d.Location})
 	pb.RegisterAlarmServiceServer(g, &service.Alarms{Store: d.Store, Location: d.Location})
