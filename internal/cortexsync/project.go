@@ -11,7 +11,7 @@
 //	entity node    entity:noted:<user>:<kind>:<id>
 //	source url     noted://<kind>/<id>
 //
-// Kinds: project, task, event, note, goal, objective, holding, alarm, and
+// Kinds: project, task, event, note, goal, objective, holding, alarm, person, and
 // time, whose id is an ISO week (time entries are summed per week, not sent
 // one by one). Numbers that change (shares, average cost, a metric's latest
 // reading, minutes, an alarm's next rings) are written only as dated
@@ -49,11 +49,12 @@ const (
 	KindObjective = "objective"
 	KindHolding   = "holding"
 	KindAlarm     = "alarm"
+	KindPerson    = "person"
 	KindTime      = "time"
 )
 
 // kindOrder is the order a run sends kinds in, the ones others point at first.
-var kindOrder = []string{KindObjective, KindProject, KindGoal, KindHolding, KindTask, KindEvent, KindNote, KindAlarm, KindTime}
+var kindOrder = []string{KindObjective, KindProject, KindGoal, KindHolding, KindPerson, KindTask, KindEvent, KindNote, KindAlarm, KindTime}
 
 // Relation types between entities. "mentions" is not one of them: CortexDB
 // keeps that name for its own chunk-to-entity bookkeeping edges, which graph
@@ -65,6 +66,7 @@ const (
 	RelCountToward = "count_toward" // a week of time entries -> goal
 	RelSpentOn     = "spent_on"     // a week of time entries -> project
 	RelHeldIn      = "held_in"      // holding -> currency
+	RelInvolves    = "involves"     // any item whose words name a person -> that person
 )
 
 // Holding is a holding with the position its trades add up to.
@@ -95,6 +97,7 @@ type Snapshot struct {
 	Holdings   []Holding
 	Time       []store.TimeEntry
 	Alarms     []Alarm
+	People     []store.Person
 }
 
 // Item is one record for the brain.
@@ -148,11 +151,12 @@ func currencyEntity(code string) cortexdb.ToolEntityInput {
 
 // builder collects items while it projects a snapshot.
 type builder struct {
-	s     Snapshot
-	l     labels
-	out   Projection
-	exist map[string]bool   // keys present in the snapshot
-	title map[string]string // key -> title, for "project: X" lines
+	s      Snapshot
+	l      labels
+	out    Projection
+	exist  map[string]bool   // keys present in the snapshot
+	title  map[string]string // key -> title, for "project: X" lines
+	people []personName      // the people an item's words may name
 }
 
 // Project turns a snapshot into the records a brain should hold.
@@ -186,6 +190,10 @@ func Project(s Snapshot) Projection {
 	for _, a := range s.Alarms {
 		b.see(KindAlarm, a.ID, a.Label)
 	}
+	for _, p := range s.People {
+		b.see(KindPerson, p.ID, p.Name)
+	}
+	b.people = peopleMatcher(s.People)
 	for _, o := range s.Objectives {
 		b.objective(o)
 	}
@@ -209,6 +217,9 @@ func Project(s Snapshot) Projection {
 	}
 	for _, a := range s.Alarms {
 		b.alarm(a)
+	}
+	for _, p := range s.People {
+		b.person(p)
 	}
 	b.weeks()
 	order := map[string]int{}
@@ -252,6 +263,11 @@ type record struct {
 
 func (b *builder) emit(r record) {
 	k := key(r.kind, r.id)
+	if r.kind != KindPerson {
+		for _, pk := range b.named(r.title, r.content) {
+			r.rels = append(r.rels, rel{to: pk, typ: RelInvolves})
+		}
+	}
 	kid := KnowledgeID(b.s.User, k)
 	meta := map[string]string{
 		"source":           "noted",
@@ -453,7 +469,7 @@ func (b *builder) event(e store.Event) {
 // references the App writes into notes.
 var refRE = regexp.MustCompile(`noted://([a-z]+)/([^\s()\[\]<>"'，。；：！？、）】]+)`)
 
-var refKinds = map[string]bool{KindProject: true, KindTask: true, KindEvent: true, KindNote: true, KindGoal: true, KindObjective: true, KindHolding: true, KindAlarm: true}
+var refKinds = map[string]bool{KindPerson: true, KindProject: true, KindTask: true, KindEvent: true, KindNote: true, KindGoal: true, KindObjective: true, KindHolding: true, KindAlarm: true}
 
 // References returns the keys of the items a Markdown text links to, in order
 // of first appearance, each once.

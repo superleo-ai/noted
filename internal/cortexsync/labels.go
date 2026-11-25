@@ -3,7 +3,7 @@ package cortexsync
 // labels are the words the records are written in, following the server's
 // language setting.
 type labels struct {
-	kindProject, kindTask, kindEvent, kindNote, kindGoal, kindObjective, kindHolding, kindAlarm string
+	kindProject, kindTask, kindEvent, kindNote, kindGoal, kindObjective, kindHolding, kindAlarm, kindPerson string
 
 	status, space, start, due, priority, progress, repeat, when, location, tags, updated string
 	project, goal, objective, milestones, target, currency                               string
@@ -48,7 +48,7 @@ func labelsFor(lang string) labels {
 }
 
 var labelsZH = labels{
-	kindProject: "项目", kindTask: "待办", kindEvent: "日程", kindNote: "笔记", kindGoal: "目标", kindObjective: "大目标", kindHolding: "标的", kindAlarm: "闹钟",
+	kindProject: "项目", kindTask: "待办", kindEvent: "日程", kindNote: "笔记", kindGoal: "目标", kindObjective: "大目标", kindHolding: "标的", kindAlarm: "闹钟", kindPerson: "人物",
 	status: "状态：", space: "空间：", start: "开始：", due: "截止：", priority: "优先级：", progress: "进度：", repeat: "重复：",
 	when: "时间：", location: "地点：", tags: "标签：", updated: "更新于 ",
 	project: "项目：", goal: "目标：", objective: "属于大目标：", milestones: "里程碑：", target: "目标值：", currency: "币种：",
@@ -81,7 +81,7 @@ var labelsZH = labels{
 }
 
 var labelsEN = labels{
-	kindProject: "Project", kindTask: "To-do", kindEvent: "Event", kindNote: "Note", kindGoal: "Goal", kindObjective: "Objective", kindHolding: "Holding", kindAlarm: "Alarm",
+	kindProject: "Project", kindTask: "To-do", kindEvent: "Event", kindNote: "Note", kindGoal: "Goal", kindObjective: "Objective", kindHolding: "Holding", kindAlarm: "Alarm", kindPerson: "Person",
 	status: "Status: ", space: "Space: ", start: "Start: ", due: "Due: ", priority: "Priority: ", progress: "Progress: ", repeat: "Repeats: ",
 	when: "When: ", location: "Location: ", tags: "Tags: ", updated: "Updated ",
 	project: "Project: ", goal: "Goal: ", objective: "Part of objective: ", milestones: "Milestones: ", target: "Target: ", currency: "Currency: ",

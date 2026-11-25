@@ -78,6 +78,10 @@ func Collect(ctx context.Context, st *store.Store, userID, userName string, loc 
 	for _, a := range as {
 		s.Alarms = append(s.Alarms, Alarm{Alarm: a, NextFires: a.NextFires(now, 5)})
 	}
+	// People belong to no space, so every one is sent.
+	if s.People, err = st.ListPeople(ctx, userID, "", 1000); err != nil {
+		return s, err
+	}
 	return only(s, access), nil
 }
 
